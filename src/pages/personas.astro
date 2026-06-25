@@ -1,196 +1,322 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import { supabase, optimizarImagen } from '../lib/supabase';
-import MapaInteractivo from '../components/MapaInteractivo.astro';
+import Layout from "../layouts/Layout.astro";
+import { supabase, optimizarImagen } from "../lib/supabase";
+import MapaInteractivo from "../components/MapaInteractivo.astro";
 
-let mensaje = '';
-let mensajeTipo = ''; // 'success' o 'error'
+let mensaje = "";
+let mensajeTipo = ""; // 'success' o 'error'
 
 // Procesar el formulario si es POST (Zero-JS)
-if (Astro.request.method === 'POST') {
-  try {
-    const data = await Astro.request.formData();
-    
-    // Extrayendo y limpiando datos
-    const tipo_reporte = data.get('tipo_reporte')?.toString() || 'BUSCO';
-    const nombre_completo = data.get('nombre_completo')?.toString().trim() || '';
-    const estado = data.get('estado')?.toString().trim() || '';
-    const ciudad_municipio = data.get('ciudad_municipio')?.toString().trim() || '';
-    const direccion_referencia = data.get('direccion_referencia')?.toString().trim() || '';
-    const vestimenta_rasgos = data.get('vestimenta_rasgos')?.toString().trim() || '';
-    const contacto_reportante = data.get('contacto_reportante')?.toString().trim() || '';
-    const estado_vital = data.get('estado_vital')?.toString() || 'DESAPARECIDO';
-    
-    const latStr = data.get('latitud')?.toString();
-    const latitud = latStr ? parseFloat(latStr) : null;
-    const lonStr = data.get('longitud')?.toString();
-    const longitud = lonStr ? parseFloat(lonStr) : null;
-    const imagen_url = data.get('imagen_url')?.toString().trim() || null;
+if (Astro.request.method === "POST") {
+	try {
+		const data = await Astro.request.formData();
 
-    if (!nombre_completo || !estado || !ciudad_municipio || !contacto_reportante) {
-      throw new Error("Faltan campos obligatorios");
-    }
+		// Extrayendo y limpiando datos
+		const tipo_reporte = data.get("tipo_reporte")?.toString() || "BUSCO";
+		const nombre_completo =
+			data.get("nombre_completo")?.toString().trim() || "";
+		const estado = data.get("estado")?.toString().trim() || "";
+		const ciudad_municipio =
+			data.get("ciudad_municipio")?.toString().trim() || "";
+		const direccion_referencia =
+			data.get("direccion_referencia")?.toString().trim() || "";
+		const vestimenta_rasgos =
+			data.get("vestimenta_rasgos")?.toString().trim() || "";
+		const contacto_reportante =
+			data.get("contacto_reportante")?.toString().trim() || "";
+		const estado_vital =
+			data.get("estado_vital")?.toString() || "DESAPARECIDO";
 
-    // Insertar en Supabase
-    const { error } = await supabase.from('personas_busquedas').insert([
-      { 
-        tipo_reporte, 
-        nombre_completo, 
-        estado, 
-        ciudad_municipio, 
-        direccion_referencia, 
-        vestimenta_rasgos, 
-        contacto_reportante, 
-        estado_vital,
-        latitud: isNaN(latitud as any) ? null : latitud,
-        longitud: isNaN(longitud as any) ? null : longitud,
-        imagen_url
-      }
-    ]);
+		const latStr = data.get("latitud")?.toString();
+		const latitud = latStr ? parseFloat(latStr) : null;
+		const lonStr = data.get("longitud")?.toString();
+		const longitud = lonStr ? parseFloat(lonStr) : null;
+		const imagen_url = data.get("imagen_url")?.toString().trim() || null;
 
-    if (error) {
-      console.error(error);
-      throw new Error("Error al guardar en la base de datos.");
-    }
-    
-    mensaje = 'Reporte guardado con éxito. Aparecerá en la lista a continuación.';
-    mensajeTipo = 'success';
-  } catch (error: any) {
-    mensaje = error.message || 'Hubo un error al procesar el reporte.';
-    mensajeTipo = 'error';
-  }
+		if (
+			!nombre_completo ||
+			!estado ||
+			!ciudad_municipio ||
+			!contacto_reportante
+		) {
+			throw new Error("Faltan campos obligatorios");
+		}
+
+		// Insertar en Supabase
+		const { error } = await supabase.from("personas_busquedas").insert([
+			{
+				tipo_reporte,
+				nombre_completo,
+				estado,
+				ciudad_municipio,
+				direccion_referencia,
+				vestimenta_rasgos,
+				contacto_reportante,
+				estado_vital,
+				latitud: isNaN(latitud as any) ? null : latitud,
+				longitud: isNaN(longitud as any) ? null : longitud,
+				imagen_url,
+			},
+		]);
+
+		if (error) {
+			console.error(error);
+			throw new Error("Error al guardar en la base de datos.");
+		}
+
+		mensaje =
+			"Reporte guardado con éxito. Aparecerá en la lista a continuación.";
+		mensajeTipo = "success";
+	} catch (error: any) {
+		mensaje = error.message || "Hubo un error al procesar el reporte.";
+		mensajeTipo = "error";
+	}
 }
 
 // Búsqueda simple (si hay query string)
 const url = new URL(Astro.request.url);
-const buscar = url.searchParams.get('q') || '';
-const ubicacion = url.searchParams.get('ubicacion') || '';
+const buscar = url.searchParams.get("q") || "";
+const ubicacion = url.searchParams.get("ubicacion") || "";
 
 // Consultar los reportes activos
 let query = supabase
-  .from('personas_busquedas')
-  .select('*')
-  .eq('estatus_actual', 'ACTIVO')
-  .order('created_at', { ascending: false });
+	.from("personas_busquedas")
+	.select("*")
+	.eq("estatus_actual", "ACTIVO")
+	.order("created_at", { ascending: false });
 
 if (buscar) {
-  query = query.or(`nombre_completo.ilike.%${buscar}%,vestimenta_rasgos.ilike.%${buscar}%`);
+	query = query.or(
+		`nombre_completo.ilike.%${buscar}%,vestimenta_rasgos.ilike.%${buscar}%`,
+	);
 }
 
 if (ubicacion) {
-  query = query.or(`ciudad_municipio.ilike.%${ubicacion}%,estado.ilike.%${ubicacion}%`);
+	query = query.or(
+		`ciudad_municipio.ilike.%${ubicacion}%,estado.ilike.%${ubicacion}%`,
+	);
 }
 
 const { data: personas, error: fetchError } = await query;
 
 // Preparar los marcadores para el mapa
-const markerItems = (personas || []).map(p => ({
-  id: p.id,
-  latitud: p.latitud ? parseFloat(p.latitud.toString()) : null,
-  longitud: p.longitud ? parseFloat(p.longitud.toString()) : null,
-  titulo: p.nombre_completo,
-  subtitulo: `${p.ciudad_municipio}, ${p.estado}`,
-  descripcion: p.vestimenta_rasgos || '',
-  badge: p.tipo_reporte,
-  badgeType: p.tipo_reporte === 'BUSCO' ? 'danger' as const : 'success' as const,
-  contacto: p.contacto_reportante,
-  imagen_url: p.imagen_url
+const markerItems = (personas || []).map((p) => ({
+	id: p.id,
+	latitud: p.latitud ? parseFloat(p.latitud.toString()) : null,
+	longitud: p.longitud ? parseFloat(p.longitud.toString()) : null,
+	titulo: p.nombre_completo,
+	subtitulo: `${p.ciudad_municipio}, ${p.estado}`,
+	descripcion: p.vestimenta_rasgos || "",
+	badge: p.tipo_reporte,
+	badgeType:
+		p.tipo_reporte === "BUSCO" ? ("danger" as const) : ("success" as const),
+	contacto: p.contacto_reportante,
+	imagen_url: p.imagen_url,
 }));
 ---
 
 <Layout title="Personas Desaparecidas">
 	<div style="margin-bottom: 20px;">
-		<a href="/" style="text-decoration: none; color: var(--accent);">← Volver al Inicio</a>
+		<a href="/" style="text-decoration: none; color: var(--accent);"
+			>← Volver al Inicio</a
+		>
 	</div>
 
 	<h1 style="margin-bottom: 10px;">Búsqueda y Reencuentro</h1>
-	<p style="margin-bottom: 20px; color: #555;">Si no logras contactar a un ser querido o si estás a salvo y quieres avisarlo, por favor llena un reporte. Cada dato cuenta para unir familias. Todos los campos marcados con * son obligatorios.</p>
+	<p style="margin-bottom: 20px; color: #555;">
+		Si no logras contactar a un ser querido o si estás a salvo y quieres
+		avisarlo, por favor llena un reporte. Cada dato cuenta para unir
+		familias. Todos los campos marcados con * son obligatorios.
+	</p>
 
-	{mensaje && (
-		<div class="card" style={`background-color: ${mensajeTipo === 'success' ? '#c8e6c9' : '#ffcdd2'}; border-color: ${mensajeTipo === 'success' ? '#81c784' : '#e57373'};`}>
-			<strong>{mensajeTipo === 'success' ? 'Éxito:' : 'Error:'}</strong> {mensaje}
-		</div>
-	)}
+	{
+		mensaje && (
+			<div
+				class="card"
+				style={`background-color: ${mensajeTipo === "success" ? "#c8e6c9" : "#ffcdd2"}; border-color: ${mensajeTipo === "success" ? "#81c784" : "#e57373"};`}
+			>
+				<strong>
+					{mensajeTipo === "success" ? "Éxito:" : "Error:"}
+				</strong>{" "}
+				{mensaje}
+			</div>
+		)
+	}
 
-	<details style="margin-bottom: 30px; border: 2px solid var(--primary-blue); background-color: #f0f7ff; padding: 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 91, 181, 0.08);">
-		<summary class="btn" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin: 0 auto; max-width: 550px; font-size: 1.2rem; cursor: pointer; border: none; outline: none; box-shadow: 0 4px 10px rgba(0, 91, 181, 0.25);">
+	<details
+		style="margin-bottom: 30px; border: 2px solid var(--primary-blue); background-color: #f0f7ff; padding: 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 91, 181, 0.08);"
+	>
+		<summary
+			class="btn"
+			style="display: flex; justify-content: center; align-items: center; gap: 10px; margin: 0 auto; max-width: 550px; font-size: 1.2rem; cursor: pointer; border: none; outline: none; box-shadow: 0 4px 10px rgba(0, 91, 181, 0.25);"
+		>
 			🔍 Buscar Persona / Reportar que estás a Salvo
 		</summary>
-		
-		<div style="margin-top: 24px; background: #ffffff; padding: 20px; border-radius: 6px; border: 1px solid var(--border-color);">
+
+		<div
+			style="margin-top: 24px; background: #ffffff; padding: 20px; border-radius: 6px; border: 1px solid var(--border-color);"
+		>
 			<form method="POST">
 				<div class="form-group">
 					<label>Tipo de Reporte *</label>
 					<select name="tipo_reporte" required>
-						<option value="BUSCO">Busco a un familiar / amigo</option>
-						<option value="ENCONTRADO">Estoy a salvo / Encontré a alguien</option>
+						<option value="BUSCO"
+							>Busco a un familiar / amigo</option
+						>
+						<option value="ENCONTRADO"
+							>Estoy a salvo / Encontré a alguien</option
+						>
 					</select>
 				</div>
 
 				<div class="form-group">
 					<label>Nombre y Apellido *</label>
-					<input type="text" name="nombre_completo" placeholder="Ej: Juan Pérez" required />
+					<input
+						type="text"
+						name="nombre_completo"
+						placeholder="Ej: Juan Pérez"
+						required
+					/>
 				</div>
 
 				<div style="display: flex; gap: 10px; flex-wrap: wrap;">
 					<div class="form-group" style="flex: 1; min-width: 150px;">
 						<label>Estado *</label>
 						<!-- Para MVP usamos texto, en V2 podríamos usar un select -->
-						<input type="text" name="estado" placeholder="Ej: Distrito Capital" required />
+						<input
+							type="text"
+							name="estado"
+							placeholder="Ej: Distrito Capital"
+							required
+						/>
 					</div>
 					<div class="form-group" style="flex: 1; min-width: 150px;">
 						<label>Ciudad / Municipio *</label>
-						<input type="text" name="ciudad_municipio" placeholder="Ej: Chacao" required />
+						<input
+							type="text"
+							name="ciudad_municipio"
+							placeholder="Ej: Chacao"
+							required
+						/>
 					</div>
 				</div>
 
 				<div class="form-group">
 					<label>Dirección o Referencia de último paradero</label>
-					<input type="text" name="direccion_referencia" placeholder="Ej: Cerca de la plaza, edif. azul" />
+					<input
+						type="text"
+						name="direccion_referencia"
+						placeholder="Ej: Cerca de la plaza, edif. azul"
+					/>
 				</div>
 
 				<div class="form-group">
 					<label>Rasgos Físicos y Vestimenta</label>
-					<textarea name="vestimenta_rasgos" placeholder="Ej: Franela roja, jeans, cicatriz en la mano derecha. Edad aprox 40 años."></textarea>
+					<textarea
+						name="vestimenta_rasgos"
+						placeholder="Ej: Franela roja, jeans, cicatriz en la mano derecha. Edad aprox 40 años."
+					></textarea>
 				</div>
 
 				<div class="form-group">
 					<label>Estado Vital *</label>
 					<select name="estado_vital" required>
-						<option value="DESAPARECIDO">Desaparecido / Sin contacto</option>
+						<option value="DESAPARECIDO"
+							>Desaparecido / Sin contacto</option
+						>
 						<option value="A SALVO">A salvo / Ileso</option>
-						<option value="HOSPITALIZADO">Hospitalizado / Herido</option>
+						<option value="HOSPITALIZADO"
+							>Hospitalizado / Herido</option
+						>
 					</select>
 				</div>
 
 				<div class="form-group">
 					<label>Tu información de contacto *</label>
-					<input type="text" name="contacto_reportante" placeholder="Ej: WhatsApp +58..., Telegram @usuario" required />
-					<small style="color: #666;">No lo publiques si crees que es riesgoso, usa Telegram si es posible.</small>
+					<input
+						type="text"
+						name="contacto_reportante"
+						placeholder="Ej: WhatsApp +58..., Telegram @usuario"
+						required
+					/>
+					<small style="color: #666;"
+						>No lo publiques si crees que es riesgoso, usa Telegram
+						si es posible.</small
+					>
 				</div>
 
-				<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;" class="form-group">
+				<div
+					style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;"
+					class="form-group"
+				>
 					<div style="flex: 1; min-width: 200px;">
-						<label>Coordenadas GPS (Recomendado para el Mapa interactivo)</label>
+						<label
+							>Coordenadas GPS (Recomendado para el Mapa
+							interactivo)</label
+						>
 						<div style="display: flex; gap: 8px;">
-							<input type="text" id="input-lat" name="latitud" placeholder="Latitud (Ej: 10.496)" readonly style="background: var(--bg-gray); cursor: not-allowed;" />
-							<input type="text" id="input-lon" name="longitud" placeholder="Longitud (Ej: -66.879)" readonly style="background: var(--bg-gray); cursor: not-allowed;" />
+							<input
+								type="text"
+								id="input-lat"
+								name="latitud"
+								placeholder="Latitud (Ej: 10.496)"
+								readonly
+								style="background: var(--bg-gray); cursor: not-allowed;"
+							/>
+							<input
+								type="text"
+								id="input-lon"
+								name="longitud"
+								placeholder="Longitud (Ej: -66.879)"
+								readonly
+								style="background: var(--bg-gray); cursor: not-allowed;"
+							/>
 						</div>
 					</div>
-					<button type="button" id="btn-gps" class="btn btn-secondary" style="height: 48px; padding: 0 15px; font-size: 0.9rem; white-space: nowrap;">
+					<button
+						type="button"
+						id="btn-gps"
+						class="btn btn-secondary"
+						style="height: 48px; padding: 0 15px; font-size: 0.9rem; white-space: nowrap;"
+					>
 						📍 Capturar GPS
 					</button>
 				</div>
-				<div style="font-size: 0.85rem; color: #444; margin-top: -10px; margin-bottom: 5px; line-height: 1.4;">
-					<strong>🔒 Privacidad y utilidad:</strong> Tu navegador te pedirá permiso (es totalmente seguro). Tu ubicación ayuda a que los vecinos que estén cerca puedan encontrar esta información fácilmente en el mapa interactivo. ¡Por favor, apruébalo!
+				<div
+					style="font-size: 0.85rem; color: #444; margin-top: -10px; margin-bottom: 5px; line-height: 1.4;"
+				>
+					<strong>🔒 Privacidad y utilidad:</strong> Tu navegador te pedirá
+					permiso (es totalmente seguro). Tu ubicación ayuda a que los vecinos
+					que estén cerca puedan encontrar esta información fácilmente en
+					el mapa interactivo. ¡Por favor, apruébalo!
 				</div>
-				<div id="gps-status" style="font-size: 0.85rem; color: #555; margin-bottom: 15px;"></div>
+				<div
+					id="gps-status"
+					style="font-size: 0.85rem; color: #555; margin-bottom: 15px;"
+				>
+				</div>
 
 				<div class="form-group">
-					<label>Foto de la Persona (Opcional - Se comprime automáticamente)</label>
-					<input type="file" id="image-file" accept="image/*" style="border: 2px solid var(--border-color); padding: 8px; width: 100%; border-radius: 6px; font-size: 0.95rem;" />
-					<input type="hidden" name="imagen_url" id="input-imagen-url" />
-					<div id="upload-status" style="font-size: 0.85rem; color: #555; margin-top: 5px;"></div>
+					<label
+						>Foto de la Persona (Opcional - Se comprime
+						automáticamente)</label
+					>
+					<input
+						type="file"
+						id="image-file"
+						accept="image/*"
+						style="border: 2px solid var(--border-color); padding: 8px; width: 100%; border-radius: 6px; font-size: 0.95rem;"
+					/>
+					<input
+						type="hidden"
+						name="imagen_url"
+						id="input-imagen-url"
+					/>
+					<div
+						id="upload-status"
+						style="font-size: 0.85rem; color: #555; margin-top: 5px;"
+					>
+					</div>
 				</div>
 
 				<button type="submit">Enviar Reporte</button>
@@ -198,14 +324,41 @@ const markerItems = (personas || []).map(p => ({
 		</div>
 	</details>
 
-	<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;" />
+	<hr
+		style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;"
+	/>
 
 	<h2>Listado de Búsqueda</h2>
-	<form method="GET" style="background: none; border: none; padding: 0; margin-top: 10px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px;">
-		<input type="text" name="q" placeholder="Buscar por nombre..." value={buscar} style="flex: 2; min-width: 150px;" />
-		<input type="text" name="ubicacion" placeholder="📍 Ciudad o Estado..." value={ubicacion} style="flex: 1; min-width: 150px;" />
+	<form
+		method="GET"
+		style="background: none; border: none; padding: 0; margin-top: 10px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px;"
+	>
+		<input
+			type="text"
+			name="q"
+			placeholder="Buscar por nombre..."
+			value={buscar}
+			style="flex: 2; min-width: 150px;"
+		/>
+		<input
+			type="text"
+			name="ubicacion"
+			placeholder="📍 Ciudad o Estado..."
+			value={ubicacion}
+			style="flex: 1; min-width: 150px;"
+		/>
 		<button type="submit" style="width: auto;">Buscar</button>
-		{(buscar || ubicacion) && <a href="/personas" class="btn btn-secondary" style="width: auto;">Limpiar</a>}
+		{
+			(buscar || ubicacion) && (
+				<a
+					href="/personas"
+					class="btn btn-secondary"
+					style="width: auto;"
+				>
+					Limpiar
+				</a>
+			)
+		}
 	</form>
 
 	<div style="margin-bottom: 25px;">
@@ -214,126 +367,175 @@ const markerItems = (personas || []).map(p => ({
 
 	<div class="lista">
 		{fetchError && <p>Error al cargar los datos: {fetchError.message}</p>}
-		
-		{(!personas || personas.length === 0) && !fetchError && (
-			<p>No hay reportes activos en este momento.</p>
-		)}
 
-		{personas && personas.map((persona) => (
-			<div class="card">
-				<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-					<h3 style="margin: 0; font-size: 1.2rem;">{persona.nombre_completo}</h3>
-					<span class={`badge ${persona.tipo_reporte === 'BUSCO' ? 'badge-danger' : 'badge-success'}`}>
-						{persona.tipo_reporte}
-					</span>
-				</div>
-				
-				{persona.imagen_url && (
-					<details style="margin-bottom: 12px; max-width: 100%; border: none; padding: 0; background: transparent;">
-						<summary class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem; display: inline-block; margin-bottom: 8px;">📷 Ver Foto Adjunta</summary>
-						<img src={optimizarImagen(persona.imagen_url)} alt={`Foto de ${persona.nombre_completo}`} style="max-width: 100%; max-height: 250px; border-radius: 6px; object-fit: cover; border: 2px solid var(--border-color); display: block;" />
-					</details>
-				)}
-				
-				<p style="margin-bottom: 5px; font-size: 0.95rem;">
-					<strong>📍 Ubicación:</strong> {persona.ciudad_municipio}, {persona.estado}
-					{persona.direccion_referencia && ` (${persona.direccion_referencia})`}
-				</p>
-				
-				{persona.vestimenta_rasgos && (
-					<p style="margin-bottom: 5px; font-size: 0.95rem;">
-						<strong>👤 Rasgos:</strong> {persona.vestimenta_rasgos}
-					</p>
-				)}
+		{
+			(!personas || personas.length === 0) && !fetchError && (
+				<p>No hay reportes activos en este momento.</p>
+			)
+		}
 
-				<div style="display: flex; gap: 10px; margin-top: 12px; font-size: 0.9rem;">
-					<span style="background: #eee; padding: 3px 8px; border-radius: 4px;">
-						Estado: <strong>{persona.estado_vital}</strong>
-					</span>
-					<span style="background: #eee; padding: 3px 8px; border-radius: 4px;">
-						Contacto: <strong>{persona.contacto_reportante}</strong>
-					</span>
-				</div>
-				<p style="margin-top: 10px; font-size: 0.8rem; color: #777;">
-					Reportado el {new Date(persona.created_at).toLocaleDateString('es-VE', { hour: '2-digit', minute:'2-digit' })}
-				</p>
-			</div>
-		))}
+		{
+			personas &&
+				personas.map((persona) => (
+					<div class="card">
+						<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+							<h3 style="margin: 0; font-size: 1.2rem;">
+								{persona.nombre_completo}
+							</h3>
+							<span
+								class={`badge ${persona.tipo_reporte === "BUSCO" ? "badge-danger" : "badge-success"}`}
+							>
+								{persona.tipo_reporte}
+							</span>
+						</div>
+
+						{persona.imagen_url && (
+							<details style="margin-bottom: 12px; max-width: 100%; border: none; padding: 0; background: transparent;">
+								<summary
+									class="btn btn-secondary"
+									style="padding: 6px 12px; font-size: 0.85rem; display: inline-block; margin-bottom: 8px;"
+								>
+									📷 Ver Foto Adjunta
+								</summary>
+								<img
+									src={optimizarImagen(persona.imagen_url)}
+									alt={`Foto de ${persona.nombre_completo}`}
+									style="max-width: 100%; max-height: 250px; border-radius: 6px; object-fit: cover; border: 2px solid var(--border-color); display: block;"
+								/>
+							</details>
+						)}
+
+						<p style="margin-bottom: 5px; font-size: 0.95rem;">
+							<strong>📍 Ubicación:</strong>{" "}
+							{persona.ciudad_municipio}, {persona.estado}
+							{persona.direccion_referencia &&
+								` (${persona.direccion_referencia})`}
+						</p>
+
+						{persona.vestimenta_rasgos && (
+							<p style="margin-bottom: 5px; font-size: 0.95rem;">
+								<strong>👤 Rasgos:</strong>{" "}
+								{persona.vestimenta_rasgos}
+							</p>
+						)}
+
+						<div style="display: flex; gap: 10px; margin-top: 12px; font-size: 0.9rem;">
+							<span style="background: #eee; padding: 3px 8px; border-radius: 4px;">
+								Estado: <strong>{persona.estado_vital}</strong>
+							</span>
+							<span style="background: #eee; padding: 3px 8px; border-radius: 4px;">
+								Contacto:{" "}
+								<strong>{persona.contacto_reportante}</strong>
+							</span>
+						</div>
+						<p style="margin-top: 10px; font-size: 0.8rem; color: #777;">
+							Reportado el{" "}
+							{new Date(persona.created_at).toLocaleDateString(
+								"es-VE",
+								{ hour: "2-digit", minute: "2-digit" },
+							)}
+						</p>
+					</div>
+				))
+		}
 	</div>
 
 	<!-- Credenciales de Supabase en un contenedor oculto para uso del script del cliente -->
-	<div id="credentials-holder" data-url={import.meta.env.SUPABASE_URL} data-key={import.meta.env.SUPABASE_ANON_KEY} style="display: none;"></div>
+	<div
+		id="credentials-holder"
+		data-url={import.meta.env.SUPABASE_URL}
+		data-key={import.meta.env.SUPABASE_ANON_KEY}
+		style="display: none;"
+	>
+	</div>
 
 	<script>
-	  import { compressAndUploadImage } from '../lib/clientStorage';
+		import { compressAndUploadImage } from "../lib/clientStorage";
 
-	  const holder = document.getElementById('credentials-holder');
-	  const supabaseUrl = holder?.getAttribute('data-url') || '';
-	  const supabaseAnonKey = holder?.getAttribute('data-key') || '';
+		const holder = document.getElementById("credentials-holder");
+		const supabaseUrl = holder?.getAttribute("data-url") || "";
+		const supabaseAnonKey = holder?.getAttribute("data-key") || "";
 
-	  // Geolocalización
-	  const btnGps = document.getElementById('btn-gps');
-	  const gpsStatus = document.getElementById('gps-status');
-	  const inputLat = document.getElementById('input-lat') as HTMLInputElement;
-	  const inputLon = document.getElementById('input-lon') as HTMLInputElement;
+		// Geolocalización
+		const btnGps = document.getElementById("btn-gps");
+		const gpsStatus = document.getElementById("gps-status");
+		const inputLat = document.getElementById(
+			"input-lat",
+		) as HTMLInputElement;
+		const inputLon = document.getElementById(
+			"input-lon",
+		) as HTMLInputElement;
 
-	  if (btnGps && gpsStatus && inputLat && inputLon) {
-	    btnGps.addEventListener('click', () => {
-	      gpsStatus.innerText = '⏳ Obteniendo GPS...';
-	      if (!navigator.geolocation) {
-	        gpsStatus.innerText = '❌ La geolocalización no está soportada en este navegador';
-	        return;
-	      }
-	      navigator.geolocation.getCurrentPosition(
-	        (position) => {
-	          const lat = position.coords.latitude;
-	          const lon = position.coords.longitude;
-	          inputLat.value = lat.toFixed(6);
-	          inputLon.value = lon.toFixed(6);
-	          gpsStatus.innerHTML = `✅ Ubicación detectada con éxito.`;
-	          gpsStatus.style.color = '#166534';
-	        },
-	        (error) => {
-	          gpsStatus.innerText = `❌ Error: ${error.message}. Por favor actívalo manualmente.`;
-	          gpsStatus.style.color = '#b91c1c';
-	        },
-	        { enableHighAccuracy: true, timeout: 8000 }
-	      );
-	    });
-	  }
+		if (btnGps && gpsStatus && inputLat && inputLon) {
+			btnGps.addEventListener("click", () => {
+				gpsStatus.innerText = "⏳ Obteniendo GPS...";
+				if (!navigator.geolocation) {
+					gpsStatus.innerText =
+						"❌ La geolocalización no está soportada en este navegador";
+					return;
+				}
+				navigator.geolocation.getCurrentPosition(
+					(position) => {
+						const lat = position.coords.latitude;
+						const lon = position.coords.longitude;
+						inputLat.value = lat.toFixed(6);
+						inputLon.value = lon.toFixed(6);
+						gpsStatus.innerHTML = `✅ Ubicación detectada con éxito.`;
+						gpsStatus.style.color = "#166534";
+					},
+					(error) => {
+						gpsStatus.innerText = `❌ Error: ${error.message}. Por favor actívalo manualmente.`;
+						gpsStatus.style.color = "#b91c1c";
+					},
+					{ enableHighAccuracy: true, timeout: 8000 },
+				);
+			});
+		}
 
-	  // Compresión y carga de imágenes
-	  const imageFile = document.getElementById('image-file') as HTMLInputElement;
-	  const inputImagenUrl = document.getElementById('input-imagen-url') as HTMLInputElement;
-	  const uploadStatus = document.getElementById('upload-status');
-	  const submitBtn = document.querySelector('form button[type="submit"]') as HTMLButtonElement;
+		// Compresión y carga de imágenes
+		const imageFile = document.getElementById(
+			"image-file",
+		) as HTMLInputElement;
+		const inputImagenUrl = document.getElementById(
+			"input-imagen-url",
+		) as HTMLInputElement;
+		const uploadStatus = document.getElementById("upload-status");
+		const submitBtn = document.querySelector(
+			'form button[type="submit"]',
+		) as HTMLButtonElement;
 
-	  if (imageFile && inputImagenUrl && uploadStatus && submitBtn) {
-	    imageFile.addEventListener('change', async () => {
-	      const file = imageFile.files?.[0];
-	      if (!file) return;
+		if (imageFile && inputImagenUrl && uploadStatus && submitBtn) {
+			imageFile.addEventListener("change", async () => {
+				const file = imageFile.files?.[0];
+				if (!file) return;
 
-	      try {
-	        uploadStatus.innerText = '⏳ Optimizando foto en tu dispositivo...';
-	        uploadStatus.style.color = '#555';
-	        submitBtn.disabled = true;
-	        submitBtn.style.opacity = '0.5';
+				try {
+					uploadStatus.innerText =
+						"⏳ Optimizando foto en tu dispositivo...";
+					uploadStatus.style.color = "#555";
+					submitBtn.disabled = true;
+					submitBtn.style.opacity = "0.5";
 
-	        const publicUrl = await compressAndUploadImage(file, supabaseUrl, supabaseAnonKey);
-	        
-	        inputImagenUrl.value = publicUrl;
-	        uploadStatus.innerText = '✅ Foto subida y optimizada (~100KB) con éxito.';
-	        uploadStatus.style.color = '#166534';
-	      } catch (err: any) {
-	        console.error(err);
-	        uploadStatus.innerText = `❌ Error al subir la imagen: ${err.message || 'Error desconocido'}`;
-	        uploadStatus.style.color = '#b91c1c';
-	        imageFile.value = '';
-	      } finally {
-	        submitBtn.disabled = false;
-	        submitBtn.style.opacity = '1';
-	      }
-	    });
-	  }
+					const publicUrl = await compressAndUploadImage(
+						file,
+						supabaseUrl,
+						supabaseAnonKey,
+					);
+
+					inputImagenUrl.value = publicUrl;
+					uploadStatus.innerText =
+						"✅ Foto subida y optimizada (~100KB) con éxito.";
+					uploadStatus.style.color = "#166534";
+				} catch (err: any) {
+					console.error(err);
+					uploadStatus.innerText = `❌ Error al subir la imagen: ${err.message || "Error desconocido"}`;
+					uploadStatus.style.color = "#b91c1c";
+					imageFile.value = "";
+				} finally {
+					submitBtn.disabled = false;
+					submitBtn.style.opacity = "1";
+				}
+			});
+		}
 	</script>
 </Layout>
