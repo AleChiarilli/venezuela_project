@@ -96,6 +96,17 @@ if (filtroTipo) {
 
 const { data: suministros, error: fetchError } = await query;
 
+const nombresCategorias: Record<string, string> = {
+  ALIMENTOS: 'Comida y Alimentos',
+  MEDICINAS: 'Medicinas y Primeros Auxilios',
+  AGUA: 'Agua Potable y Limpia',
+  HIGIENE: 'Aseo e Higiene Personal',
+  TRANSPORTE: 'Vehículos y Traslados',
+  SALUD: 'Apoyo Médico y Psicológico',
+  VOLUNTARIADO: 'Manos para Ayudar (Voluntarios)',
+  OTROS: 'Otros Apoyos y Servicios'
+};
+
 // Preparar los marcadores para el mapa
 const markerItems = (suministros || []).map(item => ({
   id: item.id,
@@ -103,7 +114,7 @@ const markerItems = (suministros || []).map(item => ({
   longitud: item.longitud ? parseFloat(item.longitud.toString()) : null,
   titulo: item.titulo_item,
   subtitulo: `${item.ciudad_municipio}, ${item.estado}`,
-  descripcion: `[${item.categoria}] ${item.descripcion || ''} - Cantidad: ${item.cantidad_existencias} ${item.unidad_medida}`,
+  descripcion: `[${nombresCategorias[item.categoria] || item.categoria}] ${item.descripcion || ''} - Cantidad: ${item.cantidad_existencias} ${item.unidad_medida}`,
   badge: item.tipo_anuncio === 'TENGO' ? 'TENGO' : 'NECESITO',
   badgeType: item.tipo_anuncio === 'TENGO' ? 'success' as const : 'danger' as const,
   contacto: item.contacto,
@@ -111,13 +122,13 @@ const markerItems = (suministros || []).map(item => ({
 }));
 ---
 
-<Layout title="Ayuda y Servicios">
+<Layout title="Ayuda y Comida">
 	<div style="margin-bottom: 20px;">
 		<a href="/" style="text-decoration: none; color: var(--accent);">← Volver al Inicio</a>
 	</div>
 
-	<h1 style="margin-bottom: 10px;">Ayuda, Suministros y Servicios</h1>
-	<p style="margin-bottom: 20px; color: #555;">La solidaridad nos mantiene a flote. ¿Eres médico, psicólogo, o tienes un vehículo para mover escombros? ¿Tienes agua o comida extra? Ofrece tu ayuda, tu tiempo y recursos valen oro. Todos los campos con * son obligatorios.</p>
+	<h1 style="margin-bottom: 10px;">Ayuda y Comida</h1>
+	<p style="margin-bottom: 20px; color: #555;">La solidaridad nos mantiene a flote. ¿Tienes agua o comida extra? ¿Puedes ofrecer transporte, asistencia médica o prestar un generador eléctrico? Ofrece tu ayuda, tu tiempo y recursos valen oro. Todos los campos con * son obligatorios.</p>
 
 	<div class="card" style="background-color: var(--bg-gray); border: none; border-left: 5px solid var(--primary-blue); margin-bottom: 25px; border-radius: 4px;">
 		<h3 style="margin-top: 0; margin-bottom: 10px; font-size: 1.15rem; color: var(--primary-blue);">💡 Ideas inspiradoras para ofrecer ayuda (¡Todo cuenta!)</h3>
@@ -149,14 +160,14 @@ const markerItems = (suministros || []).map(item => ({
 			<div class="form-group">
 				<label>Categoría *</label>
 				<select name="categoria" required>
-					<option value="ALIMENTOS">Alimentos y Comida no perecedera</option>
+					<option value="ALIMENTOS">Comida y Alimentos Compartidos</option>
 					<option value="MEDICINAS">Medicinas y Primeros Auxilios</option>
-					<option value="AGUA">Agua Potable y Líquidos</option>
-					<option value="HIGIENE">Productos de Higiene Personal</option>
-					<option value="TRANSPORTE">Transporte y Logística (Ej: Vehículos)</option>
-					<option value="SALUD">Atención Médica y Psicológica</option>
-					<option value="VOLUNTARIADO">Voluntariado y Mano de Obra</option>
-					<option value="OTROS">Otros Recursos o Servicios</option>
+					<option value="AGUA">Agua Potable y Limpia</option>
+					<option value="HIGIENE">Aseo e Higiene Personal</option>
+					<option value="TRANSPORTE">Vehículos y Traslados</option>
+					<option value="SALUD">Apoyo Médico y Psicológico</option>
+					<option value="VOLUNTARIADO">Manos para Ayudar (Voluntarios)</option>
+					<option value="OTROS">Otros Apoyos y Servicios</option>
 				</select>
 			</div>
 
@@ -232,18 +243,18 @@ const markerItems = (suministros || []).map(item => ({
 				<div id="upload-status" style="font-size: 0.85rem; color: #555; margin-top: 5px;"></div>
 			</div>
 
-			<button type="submit">Publicar Suministro</button>
+			<button type="submit">Publicar Anuncio</button>
 		</form>
 	</details>
 
 	<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;" />
 
-	<h2>Listado de Suministros</h2>
+	<h2>Anuncios de Ayuda y Comida</h2>
 
 	<!-- Filtros y Búsqueda -->
 	<form method="GET" style="background: none; border: none; padding: 0; margin-top: 10px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
 		<div style="display: flex; gap: 10px; flex-wrap: wrap;">
-			<input type="text" name="q" placeholder="Buscar ayuda o servicio..." value={buscar} style="flex: 2; min-width: 200px;" />
+			<input type="text" name="q" placeholder="Buscar ayuda, comida o servicio..." value={buscar} style="flex: 2; min-width: 200px;" />
 			<input type="text" name="ubicacion" placeholder="📍 Ciudad o Estado..." value={ubicacion} style="flex: 1; min-width: 150px;" />
 			<button type="submit" style="width: auto;">Buscar</button>
 		</div>
@@ -263,7 +274,7 @@ const markerItems = (suministros || []).map(item => ({
 		{fetchError && <p>Error al cargar los datos: {fetchError.message}</p>}
 		
 		{(!suministros || suministros.length === 0) && !fetchError && (
-			<p>No se encontraron registros de suministros activos.</p>
+			<p>No se encontraron anuncios de ayuda o comida activos.</p>
 		)}
 
 		{suministros && suministros.map((item) => (
@@ -271,7 +282,7 @@ const markerItems = (suministros || []).map(item => ({
 				<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
 					<h3 style="margin: 0; font-size: 1.2rem;">{item.titulo_item}</h3>
 					<div style="display: flex; gap: 5px;">
-						<span class="badge badge-neutral">{item.categoria}</span>
+						<span class="badge badge-neutral">{nombresCategorias[item.categoria] || item.categoria}</span>
 						<span class={`badge ${item.tipo_anuncio === 'TENGO' ? 'badge-success' : 'badge-danger'}`}>
 							{item.tipo_anuncio === 'TENGO' ? 'TENGO / OFREZCO' : 'NECESITO'}
 						</span>
