@@ -23,9 +23,9 @@ export async function compressAndUploadImage(
       const img = new Image();
       img.src = event.target?.result as string;
       img.onload = () => {
-        // Target dimensions (max 800px)
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
+        // Target dimensions (max 1080px)
+        const MAX_WIDTH = 1080;
+        const MAX_HEIGHT = 1080;
         let width = img.width;
         let height = img.height;
 
@@ -92,7 +92,7 @@ export async function compressAndUploadImage(
             }
           },
           'image/webp',
-          0.6
+          0.8
         );
       };
       img.onerror = () => reject(new Error('Fallo al cargar la imagen en memoria'));

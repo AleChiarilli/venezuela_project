@@ -11,63 +11,77 @@ let mensajeTipo = ""; // 'success' o 'error'
 if (Astro.request.method === "POST") {
 	try {
 		const data = await Astro.request.formData();
+		const action = data.get("action")?.toString() || "crear";
 
-		// Extrayendo y limpiando datos
-		const tipo_reporte = data.get("tipo_reporte")?.toString() || "BUSCO";
-		const nombre_completo =
-			data.get("nombre_completo")?.toString().trim() || "";
-		const estado = data.get("estado")?.toString().trim() || "";
-		const ciudad_municipio =
-			data.get("ciudad_municipio")?.toString().trim() || "";
-		const direccion_referencia =
-			data.get("direccion_referencia")?.toString().trim() || "";
-		const vestimenta_rasgos =
-			data.get("vestimenta_rasgos")?.toString().trim() || "";
-		const contacto_reportante =
-			data.get("contacto_reportante")?.toString().trim() || "";
-		const estado_vital =
-			data.get("estado_vital")?.toString() || "DESAPARECIDO";
+		if (action === "marcar_localizado") {
+			const id = data.get("id")?.toString();
+			const token_edicion = data.get("token_edicion")?.toString();
 
-		const latStr = data.get("latitud")?.toString();
-		const latitud = latStr ? parseFloat(latStr) : null;
-		const lonStr = data.get("longitud")?.toString();
-		const longitud = lonStr ? parseFloat(lonStr) : null;
-		const imagen_url = data.get("imagen_url")?.toString().trim() || null;
+			if (!id || !token_edicion) throw new Error("Datos inválidos para actualizar");
 
-		if (
-			!nombre_completo ||
-			!estado ||
-			!ciudad_municipio ||
-			!contacto_reportante
-		) {
-			throw new Error("Faltan campos obligatorios");
+			const { error } = await supabase
+				.from("personas_busquedas")
+				.update({ estado_vital: "A SALVO", estatus_actual: "RESUELTO" })
+				.eq("id", id)
+				.eq("token_edicion", token_edicion);
+			
+			if (error) throw new Error("No se pudo actualizar el estado en la base de datos.");
+			
+			mensaje = "¡Persona marcada como localizada! Gracias por avisar. Su ficha se moverá a la sección de localizados.";
+			mensajeTipo = "success";
+		} else {
+			// Extrayendo y limpiando datos
+			const tipo_reporte = data.get("tipo_reporte")?.toString() || "BUSCO";
+			const nombre_completo = data.get("nombre_completo")?.toString().trim() || "";
+			const estado = data.get("estado")?.toString().trim() || "";
+			const ciudad_municipio = data.get("ciudad_municipio")?.toString().trim() || "";
+			const direccion_referencia = data.get("direccion_referencia")?.toString().trim() || "";
+			const vestimenta_rasgos = data.get("vestimenta_rasgos")?.toString().trim() || "";
+			const contacto_reportante = data.get("contacto_reportante")?.toString().trim() || "";
+			const estado_vital = data.get("estado_vital")?.toString() || "DESAPARECIDO";
+
+			const latStr = data.get("latitud")?.toString();
+			const latitud = latStr ? parseFloat(latStr) : null;
+			const lonStr = data.get("longitud")?.toString();
+			const longitud = lonStr ? parseFloat(lonStr) : null;
+			const imagen_url = data.get("imagen_url")?.toString().trim() || null;
+
+			if (!nombre_completo || !estado || !ciudad_municipio || !contacto_reportante) {
+				throw new Error("Faltan campos obligatorios");
+			}
+
+			// Generar token secreto de edición
+			const token_edicion = crypto.randomUUID();
+
+			// Insertar en Supabase
+			const { error } = await supabase.from("personas_busquedas").insert([
+				{
+					tipo_reporte,
+					nombre_completo,
+					estado,
+					ciudad_municipio,
+					direccion_referencia,
+					vestimenta_rasgos,
+					contacto_reportante,
+					estado_vital,
+					latitud: isNaN(latitud as any) ? null : latitud,
+					longitud: isNaN(longitud as any) ? null : longitud,
+					imagen_url,
+					token_edicion
+				},
+			]);
+
+			if (error) {
+				console.error(error);
+				throw new Error("Error al guardar en la base de datos.");
+			}
+
+			mensaje = `Reporte guardado con éxito. Tu reporte aparecerá en la lista. Desde este mismo dispositivo podrás marcarlo como localizado cuando lo encuentres.`;
+			mensajeTipo = "success";
+			// We pass the token via a special variable so the client script can store it
+			// @ts-ignore
+			Astro.locals._nuevoToken = token_edicion;
 		}
-
-		// Insertar en Supabase
-		const { error } = await supabase.from("personas_busquedas").insert([
-			{
-				tipo_reporte,
-				nombre_completo,
-				estado,
-				ciudad_municipio,
-				direccion_referencia,
-				vestimenta_rasgos,
-				contacto_reportante,
-				estado_vital,
-				latitud: isNaN(latitud as any) ? null : latitud,
-				longitud: isNaN(longitud as any) ? null : longitud,
-				imagen_url,
-			},
-		]);
-
-		if (error) {
-			console.error(error);
-			throw new Error("Error al guardar en la base de datos.");
-		}
-
-		mensaje =
-			"Reporte guardado con éxito. Aparecerá en la lista a continuación.";
-		mensajeTipo = "success";
 	} catch (error: any) {
 		mensaje = error.message || "Hubo un error al procesar el reporte.";
 		mensajeTipo = "error";
@@ -78,13 +92,25 @@ if (Astro.request.method === "POST") {
 const url = new URL(Astro.request.url);
 const buscar = url.searchParams.get("q") || "";
 const ubicacion = url.searchParams.get("ubicacion") || "";
+const editToken = url.searchParams.get("edit") || "";
+const filtroEstado = url.searchParams.get("estado_vital") || "";
+// @ts-ignore
+const nuevoToken = Astro.locals._nuevoToken || "";
 
-// Consultar los reportes activos
+// Consultar los reportes - incluir resueltos para mostrarlos al final
 let query = supabase
 	.from("personas_busquedas")
 	.select("*")
-	.eq("estatus_actual", "ACTIVO")
 	.order("created_at", { ascending: false });
+
+if (filtroEstado === "DESAPARECIDO") {
+	query = query.eq("estatus_actual", "ACTIVO").eq("estado_vital", "DESAPARECIDO");
+} else if (filtroEstado === "A SALVO") {
+	query = query.eq("estado_vital", "A SALVO");
+} else {
+	// Default: show active first, then resolved
+	query = query.in("estatus_actual", ["ACTIVO", "RESUELTO"]);
+}
 
 if (buscar) {
 	query = query.or(
@@ -364,6 +390,22 @@ const markerItems = (personas || []).map((p) => ({
 		}
 	</form>
 
+	<!-- Filtros de estado -->
+	<div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+		<a href={`/personas?q=${buscar}&ubicacion=${ubicacion}`}
+			class="btn btn-secondary"
+			style={`width: auto; padding: 6px 14px; font-size: 0.9rem; ${!filtroEstado ? 'background-color: var(--primary-blue); color: white;' : ''}`}
+		>Todos</a>
+		<a href={`/personas?q=${buscar}&ubicacion=${ubicacion}&estado_vital=DESAPARECIDO`}
+			class="btn btn-secondary"
+			style={`width: auto; padding: 6px 14px; font-size: 0.9rem; ${filtroEstado === 'DESAPARECIDO' ? 'background-color: #b91c1c; color: white; border-color: #b91c1c;' : ''}`}
+		><span style="display:inline-block; width:8px; height:8px; background:#ef4444; border-radius:50%; margin-right:5px;"></span>Sin contacto</a>
+		<a href={`/personas?q=${buscar}&ubicacion=${ubicacion}&estado_vital=A SALVO`}
+			class="btn btn-secondary"
+			style={`width: auto; padding: 6px 14px; font-size: 0.9rem; ${filtroEstado === 'A SALVO' ? 'background-color: #166534; color: white; border-color: #166534;' : ''}`}
+		><span style="display:inline-block; width:8px; height:8px; background:#22c55e; border-radius:50%; margin-right:5px;"></span>Localizados</a>
+	</div>
+
 	<div style="margin-bottom: 25px;">
 		<MapaInteractivo items={markerItems} mapId="mapa-personas" />
 	</div>
@@ -380,15 +422,15 @@ const markerItems = (personas || []).map((p) => ({
 		{
 			personas &&
 				personas.map((persona) => (
-					<div class="card">
+					<div class={`card ${persona.estado_vital === 'A SALVO' ? 'card-resolved' : ''}`} data-token={persona.token_edicion || ''} data-id={persona.id} data-estado-vital={persona.estado_vital} style={persona.estado_vital === 'A SALVO' ? 'opacity: 0.65; border-left: 4px solid #22c55e;' : 'border-left: 4px solid #ef4444;'}>
 						<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
 							<h3 style="margin: 0; font-size: 1.2rem;">
 								{persona.nombre_completo}
 							</h3>
 							<span
-								class={`badge ${persona.tipo_reporte === "BUSCO" ? "badge-danger" : "badge-success"}`}
+								class={`badge ${persona.estado_vital === 'A SALVO' ? 'badge-success' : 'badge-danger'}`}
 							>
-								{persona.tipo_reporte}
+								{persona.estado_vital === 'A SALVO' ? '✅ Localizado' : '🔴 Sin contacto'}
 							</span>
 						</div>
 
@@ -398,11 +440,12 @@ const markerItems = (personas || []).map((p) => ({
 									class="btn btn-secondary"
 									style="padding: 6px 12px; font-size: 0.85rem; display: inline-block; margin-bottom: 8px;"
 								>
-									📷 Ver Foto Adjunta
+									📷 Ver Foto
 								</summary>
 								<img
 									src={optimizarImagen(persona.imagen_url)}
 									alt={`Foto de ${persona.nombre_completo}`}
+									class="img-zoomable"
 									style="max-width: 100%; max-height: 250px; border-radius: 6px; object-fit: cover; border: 2px solid var(--border-color); display: block;"
 								/>
 							</details>
@@ -422,15 +465,48 @@ const markerItems = (personas || []).map((p) => ({
 							</p>
 						)}
 
-						<div style="display: flex; gap: 10px; margin-top: 12px; font-size: 0.9rem;">
-							<span style="background: #eee; padding: 3px 8px; border-radius: 4px;">
-								Estado: <strong>{persona.estado_vital}</strong>
+						<div style="display: flex; gap: 10px; margin-top: 12px; font-size: 0.9rem; flex-wrap: wrap;">
+							<span style={`background: ${persona.estado_vital === 'A SALVO' ? '#dcfce3' : '#fee2e2'}; color: ${persona.estado_vital === 'A SALVO' ? '#166534' : '#b91c1c'}; padding: 3px 8px; border-radius: 4px; font-weight: 600;`}>
+								{persona.estado_vital}
 							</span>
 							<span style="background: #eee; padding: 3px 8px; border-radius: 4px;">
 								Contacto:{" "}
 								<strong>{persona.contacto_reportante}</strong>
 							</span>
 						</div>
+
+						<!-- Botón owner: se muestra via JS si el token coincide con localStorage -->
+						{persona.estado_vital !== 'A SALVO' && (
+							<form method="POST" class="owner-actions" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color);">
+								<input type="hidden" name="action" value="marcar_localizado" />
+								<input type="hidden" name="id" value={persona.id} />
+								<input type="hidden" name="token_edicion" value={persona.token_edicion} />
+								<button type="submit" style="width: 100%; padding: 10px; background: #166534; color: white;">✅ Marcar como Localizado / A Salvo</button>
+							</form>
+						)}
+
+						<!-- Botones públicos -->
+						{persona.estado_vital !== 'A SALVO' && persona.contacto_reportante && (
+							<div style="margin-top: 10px;">
+								<a href={`https://wa.me/?text=${encodeURIComponent(`Hola, tengo información sobre ${persona.nombre_completo} que fue reportado/a como desaparecido/a en ${persona.ciudad_municipio}, ${persona.estado}. Contacto del familiar: ${persona.contacto_reportante}`)}`}
+									target="_blank" rel="noopener"
+									class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem; width: auto; display: inline-block;"
+								>💬 Tengo información</a>
+							</div>
+						)}
+
+						<!-- Compartir -->
+						<div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+							<a href={`https://wa.me/?text=${encodeURIComponent(`Se busca a ${persona.nombre_completo}. Última ubicación: ${persona.ciudad_municipio}, ${persona.estado}. Si la/lo has visto, contactar a: ${persona.contacto_reportante}`)}`}
+								target="_blank" rel="noopener"
+								style="background: #25D366; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; text-decoration: none; font-weight: 600;"
+							>WhatsApp</a>
+							<a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Se busca a ${persona.nombre_completo} en ${persona.ciudad_municipio}, ${persona.estado}. Contacto: ${persona.contacto_reportante} #TerremotoVenezuela #Desaparecidos`)}`}
+								target="_blank" rel="noopener"
+								style="background: #1DA1F2; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; text-decoration: none; font-weight: 600;"
+							>X / Twitter</a>
+						</div>
+
 						<p style="margin-top: 10px; font-size: 0.8rem; color: #777;">
 							Reportado el{" "}
 							{new Date(persona.created_at).toLocaleDateString(
@@ -443,11 +519,12 @@ const markerItems = (personas || []).map((p) => ({
 		}
 	</div>
 
-	<!-- Credenciales de Supabase en un contenedor oculto para uso del script del cliente -->
+	<!-- Credenciales de Supabase y token nuevo -->
 	<div
 		id="credentials-holder"
 		data-url={import.meta.env.SUPABASE_URL}
 		data-key={import.meta.env.SUPABASE_ANON_KEY}
+		data-nuevo-token={nuevoToken}
 		style="display: none;"
 	>
 	</div>
@@ -567,6 +644,40 @@ const markerItems = (personas || []).map((p) => ({
 					});
 				});
 			});
+		});
+	</script>
+
+	<!-- localStorage: guardar nuevo token y detectar posts propios -->
+	<script is:inline>
+		document.addEventListener("DOMContentLoaded", function() {
+			var holder = document.getElementById("credentials-holder");
+			var nuevoToken = holder ? holder.getAttribute("data-nuevo-token") : "";
+
+			// Si acabamos de crear un reporte, guardar su token
+			if (nuevoToken) {
+				try {
+					var tokens = JSON.parse(localStorage.getItem("mis_reportes_personas") || "[]");
+					tokens.push(nuevoToken);
+					localStorage.setItem("mis_reportes_personas", JSON.stringify(tokens));
+				} catch(e) { /* localStorage no disponible */ }
+			}
+
+			// Detectar nuestros propios posts y mostrar botón de gestión
+			try {
+				var misTokens = JSON.parse(localStorage.getItem("mis_reportes_personas") || "[]");
+				if (misTokens.length > 0) {
+					var cards = document.querySelectorAll(".card[data-token]");
+					cards.forEach(function(card) {
+						var cardToken = card.getAttribute("data-token");
+						if (cardToken && misTokens.indexOf(cardToken) !== -1) {
+							var ownerForm = card.querySelector(".owner-actions");
+							if (ownerForm) {
+								ownerForm.style.display = "block";
+							}
+						}
+					});
+				}
+			} catch(e) { /* localStorage no disponible */ }
 		});
 	</script>
 </Layout>

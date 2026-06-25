@@ -11,63 +11,87 @@ let mensajeTipo = ''; // 'success' o 'error'
 if (Astro.request.method === 'POST') {
   try {
     const data = await Astro.request.formData();
-    
-    const tipo_anuncio_ui = data.get('tipo_anuncio_ui')?.toString() || 'BUSCO_TECHO';
-    const capacidad_personas = parseInt(data.get('capacidad_personas')?.toString() || '1', 10);
-    const descripcion = data.get('descripcion')?.toString().trim() || '';
-    const estado = data.get('estado')?.toString().trim() || '';
-    const ciudad_municipio = data.get('ciudad_municipio')?.toString().trim() || '';
-    const direccion_referencia = data.get('direccion_referencia')?.toString().trim() || '';
-    let contacto = data.get('contacto')?.toString().trim() || '';
-    
-    const latStr = data.get('latitud')?.toString();
-    const latitud = latStr ? parseFloat(latStr) : null;
-    const lonStr = data.get('longitud')?.toString();
-    const longitud = lonStr ? parseFloat(lonStr) : null;
-    const imagen_url = data.get('imagen_url')?.toString().trim() || null;
+    const action = data.get('action')?.toString() || 'crear';
 
-    let tipo_anuncio = tipo_anuncio_ui;
-    let descripcion_final = descripcion;
+    if (action === 'resolver_refugio') {
+      const id = data.get('id')?.toString();
+      const token_edicion = data.get('token_edicion')?.toString();
+      if (!id || !token_edicion) throw new Error('Datos inválidos');
+      const { error } = await supabase.from('refugios_temporales').update({ resuelto: true }).eq('id', id).eq('token_edicion', token_edicion);
+      if (error) throw new Error('No se pudo resolver el refugio.');
+      mensaje = '¡Refugio marcado como lleno/resuelto!';
+      mensajeTipo = 'success';
+    } else if (action === 'actualizar_capacidad') {
+      const id = data.get('id')?.toString();
+      const token_edicion = data.get('token_edicion')?.toString();
+      const nueva_capacidad = parseInt(data.get('nueva_capacidad')?.toString() || '0', 10);
+      if (!id || !token_edicion || nueva_capacidad < 0) throw new Error('Datos inválidos');
+      const { error } = await supabase.from('refugios_temporales').update({ capacidad_personas: nueva_capacidad }).eq('id', id).eq('token_edicion', token_edicion);
+      if (error) throw new Error('No se pudo actualizar la capacidad.');
+      mensaje = `¡Capacidad actualizada a ${nueva_capacidad} persona(s)!`;
+      mensajeTipo = 'success';
+    } else {
+      const tipo_anuncio_ui = data.get('tipo_anuncio_ui')?.toString() || 'BUSCO_TECHO';
+      const capacidad_personas = parseInt(data.get('capacidad_personas')?.toString() || '1', 10);
+      const descripcion = data.get('descripcion')?.toString().trim() || '';
+      const estado = data.get('estado')?.toString().trim() || '';
+      const ciudad_municipio = data.get('ciudad_municipio')?.toString().trim() || '';
+      const direccion_referencia = data.get('direccion_referencia')?.toString().trim() || '';
+      let contacto = data.get('contacto')?.toString().trim() || '';
+      
+      const latStr = data.get('latitud')?.toString();
+      const latitud = latStr ? parseFloat(latStr) : null;
+      const lonStr = data.get('longitud')?.toString();
+      const longitud = lonStr ? parseFloat(lonStr) : null;
+      const imagen_url = data.get('imagen_url')?.toString().trim() || null;
 
-    if (tipo_anuncio_ui === 'REPORTO_PUBLICO') {
-      tipo_anuncio = 'OFREZCO_TECHO'; // Para la base de datos sigue siendo una oferta de espacio
-      descripcion_final = "[REFUGIO PÚBLICO] " + descripcion;
-      if (!contacto) {
-        contacto = "Lugar Público (Acudir directamente)";
+      let tipo_anuncio = tipo_anuncio_ui;
+      let descripcion_final = descripcion;
+
+      if (tipo_anuncio_ui === 'REPORTO_PUBLICO') {
+        tipo_anuncio = 'OFREZCO_TECHO';
+        descripcion_final = "[REFUGIO PÚBLICO] " + descripcion;
+        if (!contacto) {
+          contacto = "Lugar Público (Acudir directamente)";
+        }
       }
-    }
 
-    if (!descripcion_final || !estado || !ciudad_municipio || !contacto) {
-      throw new Error("Faltan campos obligatorios");
-    }
-
-    if (isNaN(capacidad_personas) || capacidad_personas < 1) {
-      throw new Error("La capacidad de personas debe ser al menos 1");
-    }
-
-    // Insertar en Supabase
-    const { error } = await supabase.from('refugios_temporales').insert([
-      { 
-        tipo_anuncio,
-        capacidad_personas,
-        descripcion: descripcion_final,
-        estado,
-        ciudad_municipio,
-        direccion_referencia,
-        contacto,
-        latitud: isNaN(latitud as any) ? null : latitud,
-        longitud: isNaN(longitud as any) ? null : longitud,
-        imagen_url
+      if (!descripcion_final || !estado || !ciudad_municipio || !contacto) {
+        throw new Error("Faltan campos obligatorios");
       }
-    ]);
 
-    if (error) {
-      console.error(error);
-      throw new Error("Error al guardar en la base de datos.");
+      if (isNaN(capacidad_personas) || capacidad_personas < 1) {
+        throw new Error("La capacidad de personas debe ser al menos 1");
+      }
+
+      const token_edicion = crypto.randomUUID();
+
+      const { error } = await supabase.from('refugios_temporales').insert([
+        { 
+          tipo_anuncio,
+          capacidad_personas,
+          descripcion: descripcion_final,
+          estado,
+          ciudad_municipio,
+          direccion_referencia,
+          contacto,
+          latitud: isNaN(latitud as any) ? null : latitud,
+          longitud: isNaN(longitud as any) ? null : longitud,
+          imagen_url,
+          token_edicion
+        }
+      ]);
+
+      if (error) {
+        console.error(error);
+        throw new Error("Error al guardar en la base de datos.");
+      }
+      
+      mensaje = 'Refugio guardado con éxito. Desde este dispositivo podrás actualizar la capacidad o marcarlo como lleno.';
+      mensajeTipo = 'success';
+      // @ts-ignore
+      Astro.locals._nuevoToken = token_edicion;
     }
-    
-    mensaje = 'Anuncio de refugio guardado con éxito. Aparecerá en la lista a continuación.';
-    mensajeTipo = 'success';
   } catch (error: any) {
     mensaje = error.message || 'Hubo un error al procesar el refugio.';
     mensajeTipo = 'error';
@@ -79,6 +103,8 @@ const url = new URL(Astro.request.url);
 const buscar = url.searchParams.get('q') || '';
 const ubicacion = url.searchParams.get('ubicacion') || '';
 const filtroTipo = url.searchParams.get('tipo') || ''; // 'OFREZCO_TECHO' o 'BUSCO_TECHO'
+// @ts-ignore
+const nuevoToken = Astro.locals._nuevoToken || '';
 
 // Consultar los reportes activos
 let query = supabase
@@ -243,10 +269,10 @@ const markerItems = (refugios || []).map(item => ({
 		)}
 
 		{refugios && refugios.map((item) => (
-			<div class="card" style={`border-left: 5px solid ${item.tipo_anuncio === 'OFREZCO_TECHO' ? '#2e7d32' : 'var(--primary-blue)'}`}>
+			<div class="card" data-token={item.token_edicion || ''} data-id={item.id} style={`border-left: 5px solid ${item.tipo_anuncio === 'OFREZCO_TECHO' ? '#2e7d32' : 'var(--primary-blue)'}`}>
 				<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
 					<h3 style="margin: 0; font-size: 1.2rem;">
-						{item.tipo_anuncio === 'OFREZCO_TECHO' ? 'Ofrece Espacio' : 'Busca Refugio'}
+						{item.tipo_anuncio === 'OFREZCO_TECHO' ? '🏠 Ofrece Refugio/Techo' : '🏠 Busca Refugio/Techo'}
 					</h3>
 					<span class={`badge ${item.tipo_anuncio === 'OFREZCO_TECHO' ? 'badge-success' : 'badge-danger'}`}>
 						Capacidad: {item.capacidad_personas} {item.capacidad_personas === 1 ? 'persona' : 'personas'}
@@ -256,7 +282,7 @@ const markerItems = (refugios || []).map(item => ({
 				{item.imagen_url && (
 					<details style="margin-bottom: 12px; max-width: 100%; border: none; padding: 0; background: transparent;">
 						<summary class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem; display: inline-block; margin-bottom: 8px;">📷 Ver Foto Adjunta</summary>
-						<img src={optimizarImagen(item.imagen_url)} alt={`Foto de refugio`} style="max-width: 100%; max-height: 250px; border-radius: 6px; object-fit: cover; border: 2px solid var(--border-color); display: block;" />
+						<img src={optimizarImagen(item.imagen_url)} alt={`Foto de refugio`} class="img-zoomable" style="max-width: 100%; max-height: 250px; border-radius: 6px; object-fit: cover; border: 2px solid var(--border-color); display: block;" />
 					</details>
 				)}
 
@@ -273,6 +299,26 @@ const markerItems = (refugios || []).map(item => ({
 						Contacto: <strong>{item.contacto}</strong>
 					</span>
 				</div>
+
+				<!-- Botón owner: se muestra via JS -->
+				<div class="owner-actions" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color);">
+					<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+						<form method="POST" style="flex: 1;">
+							<input type="hidden" name="action" value="resolver_refugio" />
+							<input type="hidden" name="id" value={item.id} />
+							<input type="hidden" name="token_edicion" value={item.token_edicion} />
+							<button type="submit" style="width: 100%; padding: 8px; background: #b91c1c; color: white; font-size: 0.85rem;">🚫 Lleno / Ya no disponible</button>
+						</form>
+						<form method="POST" style="flex: 1; display: flex; gap: 5px; align-items: stretch;">
+							<input type="hidden" name="action" value="actualizar_capacidad" />
+							<input type="hidden" name="id" value={item.id} />
+							<input type="hidden" name="token_edicion" value={item.token_edicion} />
+							<input type="number" name="nueva_capacidad" value={item.capacidad_personas} min="0" style="width: 70px; padding: 4px 8px; font-size: 0.9rem; border: 2px solid var(--border-color); border-radius: 4px;" />
+							<button type="submit" style="padding: 8px 12px; background: var(--primary-blue); color: white; font-size: 0.85rem;">🔄 Actualizar</button>
+						</form>
+					</div>
+				</div>
+
 				<p style="margin-top: 10px; font-size: 0.8rem; color: #777;">
 					Publicado el {new Date(item.creado_el).toLocaleDateString('es-VE', { hour: '2-digit', minute:'2-digit' })}
 				</p>
@@ -281,7 +327,7 @@ const markerItems = (refugios || []).map(item => ({
 	</div>
 
 	<!-- Credenciales de Supabase en un contenedor oculto para uso del script del cliente -->
-	<div id="credentials-holder" data-url={import.meta.env.SUPABASE_URL} data-key={import.meta.env.SUPABASE_ANON_KEY} style="display: none;"></div>
+	<div id="credentials-holder" data-url={import.meta.env.SUPABASE_URL} data-key={import.meta.env.SUPABASE_ANON_KEY} data-nuevo-token={nuevoToken} style="display: none;"></div>
 
 	<script>
 	  import { compressAndUploadImage } from '../lib/clientStorage';
@@ -427,6 +473,36 @@ const markerItems = (refugios || []).map(item => ({
 				tipoAnuncioSelect.addEventListener("change", updateLabels);
 				updateLabels(); // Ejecutar una vez al cargar
 			}
+		});
+	</script>
+
+	<!-- localStorage: guardar token y detectar posts propios -->
+	<script is:inline>
+		document.addEventListener("DOMContentLoaded", function() {
+			var holder = document.getElementById("credentials-holder");
+			var nuevoToken = holder ? holder.getAttribute("data-nuevo-token") : "";
+
+			if (nuevoToken) {
+				try {
+					var tokens = JSON.parse(localStorage.getItem("mis_reportes_refugios") || "[]");
+					tokens.push(nuevoToken);
+					localStorage.setItem("mis_reportes_refugios", JSON.stringify(tokens));
+				} catch(e) {}
+			}
+
+			try {
+				var misTokens = JSON.parse(localStorage.getItem("mis_reportes_refugios") || "[]");
+				if (misTokens.length > 0) {
+					var cards = document.querySelectorAll(".card[data-token]");
+					cards.forEach(function(card) {
+						var cardToken = card.getAttribute("data-token");
+						if (cardToken && misTokens.indexOf(cardToken) !== -1) {
+							var ownerActions = card.querySelector(".owner-actions");
+							if (ownerActions) ownerActions.style.display = "block";
+						}
+					});
+				}
+			} catch(e) {}
 		});
 	</script>
 </Layout>

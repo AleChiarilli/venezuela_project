@@ -42,6 +42,20 @@ const { title } = Astro.props;
 		</header>
 
 		<main class="container">
+			<div class="emergency-banner">
+				<div class="emergency-banner-title">
+					<span style="display:inline-block; width:8px; height:8px; background:red; border-radius:50%; margin-right:5px; animation: pulse 2s infinite;"></span>
+					Teléfonos de emergencia (Nacionales)
+				</div>
+				<div class="emergency-numbers">
+					<a href="tel:911" class="emergency-number"><strong>911</strong><span>General / Movistar</span></a>
+					<a href="tel:171" class="emergency-number"><strong>171</strong><span>Fijo CANTV</span></a>
+					<a href="tel:112" class="emergency-number"><strong>112</strong><span>Digitel</span></a>
+					<a href="tel:*1" class="emergency-number"><strong>*1</strong><span>Movilnet</span></a>
+				</div>
+			</div>
+
+
 			<slot />
 		</main>
 
@@ -59,6 +73,40 @@ const { title } = Astro.props;
 				</p>
 			</div>
 		</footer>
+
+		<!-- Lightbox Modal -->
+		<div id="lightbox-modal" class="lightbox-modal">
+			<span class="lightbox-close">&times;</span>
+			<img class="lightbox-content" id="lightbox-img">
+		</div>
+
+		<script is:inline>
+			document.addEventListener("DOMContentLoaded", function() {
+				var modal = document.getElementById("lightbox-modal");
+				var modalImg = document.getElementById("lightbox-img");
+				var closeBtn = document.querySelector(".lightbox-close");
+
+				document.body.addEventListener("click", function(e) {
+					if (e.target && e.target.classList.contains("img-zoomable")) {
+						modal.style.display = "flex";
+						modalImg.src = e.target.src;
+						document.body.style.overflow = "hidden";
+					}
+				});
+
+				closeBtn.onclick = function() {
+					modal.style.display = "none";
+					document.body.style.overflow = "auto";
+				}
+
+				modal.onclick = function(e) {
+					if (e.target !== modalImg) {
+						modal.style.display = "none";
+						document.body.style.overflow = "auto";
+					}
+				}
+			});
+		</script>
 	</body>
 </html>
 
@@ -269,5 +317,95 @@ const { title } = Astro.props;
 		.lista {
 			grid-template-columns: repeat(3, 1fr);
 		}
+	}
+
+	/* Emergency Banner */
+	.emergency-banner {
+		background: #fff5f5;
+		border: 1px solid #fed7d7;
+		border-radius: 8px;
+		padding: 15px;
+		margin-bottom: 20px;
+	}
+	.emergency-banner-title {
+		font-size: 0.85rem;
+		font-weight: bold;
+		color: #c53030;
+		margin-bottom: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		display: flex;
+		align-items: center;
+	}
+	.emergency-numbers {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
+	}
+	.emergency-number {
+		background: #fff;
+		border: 1px solid #fed7d7;
+		padding: 8px 12px;
+		border-radius: 6px;
+		text-decoration: none;
+		color: #1a202c;
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-width: 120px;
+		transition: background 0.2s;
+	}
+	.emergency-number:hover {
+		background: #fff0f0;
+	}
+	.emergency-number strong {
+		font-size: 1.2rem;
+		color: #c53030;
+	}
+	.emergency-number span {
+		font-size: 0.75rem;
+		color: #718096;
+	}
+
+	@keyframes pulse {
+		0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); }
+		70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(229, 62, 62, 0); }
+		100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); }
+	}
+
+	/* Lightbox */
+	.lightbox-modal {
+		display: none;
+		position: fixed;
+		z-index: 9999;
+		left: 0;
+		top: 0;
+		width: 100%;
+		height: 100%;
+		background-color: rgba(0, 0, 0, 0.9);
+		align-items: center;
+		justify-content: center;
+	}
+	.lightbox-content {
+		max-width: 90%;
+		max-height: 90vh;
+		border-radius: 8px;
+		object-fit: contain;
+	}
+	.lightbox-close {
+		position: absolute;
+		top: 15px;
+		right: 35px;
+		color: #f1f1f1;
+		font-size: 40px;
+		font-weight: bold;
+		cursor: pointer;
+	}
+	.img-zoomable {
+		cursor: zoom-in;
+		transition: opacity 0.3s;
+	}
+	.img-zoomable:hover {
+		opacity: 0.9;
 	}
 </style>

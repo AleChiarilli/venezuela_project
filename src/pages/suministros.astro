@@ -11,59 +11,75 @@ let mensajeTipo = ''; // 'success' o 'error'
 if (Astro.request.method === 'POST') {
   try {
     const data = await Astro.request.formData();
-    
-    // Extrayendo y limpiando datos
-    const tipo_anuncio = data.get('tipo_anuncio')?.toString() || 'NECESITO';
-    const categoria = data.get('categoria')?.toString() || 'OTROS';
-    const titulo_item = data.get('titulo_item')?.toString().trim() || '';
-    const descripcion = data.get('descripcion')?.toString().trim() || '';
-    const cantidad_existencias = parseInt(data.get('cantidad_existencias')?.toString() || '1', 10);
-    const unidad_medida = data.get('unidad_medida')?.toString() || 'unidades';
-    const estado = data.get('estado')?.toString().trim() || '';
-    const ciudad_municipio = data.get('ciudad_municipio')?.toString().trim() || '';
-    const direccion_referencia = data.get('direccion_referencia')?.toString().trim() || '';
-    const contacto = data.get('contacto')?.toString().trim() || '';
-    
-    const latStr = data.get('latitud')?.toString();
-    const latitud = latStr ? parseFloat(latStr) : null;
-    const lonStr = data.get('longitud')?.toString();
-    const longitud = lonStr ? parseFloat(lonStr) : null;
-    const imagen_url = data.get('imagen_url')?.toString().trim() || null;
+    const action = data.get('action')?.toString() || 'crear';
 
-    if (!titulo_item || !estado || !ciudad_municipio || !contacto) {
-      throw new Error("Faltan campos obligatorios");
-    }
+    if (action === 'resolver_suministro') {
+      const id = data.get('id')?.toString();
+      const token_edicion = data.get('token_edicion')?.toString();
+      if (!id || !token_edicion) throw new Error('Datos inválidos');
+      const { error } = await supabase.from('suministros_ayuda').update({ resuelto: true }).eq('id', id).eq('token_edicion', token_edicion);
+      if (error) throw new Error('No se pudo resolver el anuncio.');
+      mensaje = '¡Anuncio marcado como resuelto! Ya no aparecerá en la lista activa.';
+      mensajeTipo = 'success';
+    } else {
+      // Extrayendo y limpiando datos
+      const tipo_anuncio = data.get('tipo_anuncio')?.toString() || 'NECESITO';
+      const categoria = data.get('categoria')?.toString() || 'OTROS';
+      const titulo_item = data.get('titulo_item')?.toString().trim() || '';
+      const descripcion = data.get('descripcion')?.toString().trim() || '';
+      const cantidad_existencias = parseInt(data.get('cantidad_existencias')?.toString() || '1', 10);
+      const unidad_medida = data.get('unidad_medida')?.toString() || 'unidades';
+      const estado = data.get('estado')?.toString().trim() || '';
+      const ciudad_municipio = data.get('ciudad_municipio')?.toString().trim() || '';
+      const direccion_referencia = data.get('direccion_referencia')?.toString().trim() || '';
+      const contacto = data.get('contacto')?.toString().trim() || '';
+      
+      const latStr = data.get('latitud')?.toString();
+      const latitud = latStr ? parseFloat(latStr) : null;
+      const lonStr = data.get('longitud')?.toString();
+      const longitud = lonStr ? parseFloat(lonStr) : null;
+      const imagen_url = data.get('imagen_url')?.toString().trim() || null;
 
-    if (isNaN(cantidad_existencias) || cantidad_existencias < 1) {
-      throw new Error("La cantidad de existencias debe ser al menos 1");
-    }
-
-    // Insertar en Supabase
-    const { error } = await supabase.from('suministros_ayuda').insert([
-      { 
-        tipo_anuncio,
-        categoria,
-        titulo_item,
-        descripcion,
-        cantidad_existencias,
-        unidad_medida,
-        estado,
-        ciudad_municipio,
-        direccion_referencia,
-        contacto,
-        latitud: isNaN(latitud as any) ? null : latitud,
-        longitud: isNaN(longitud as any) ? null : longitud,
-        imagen_url
+      if (!titulo_item || !estado || !ciudad_municipio || !contacto) {
+        throw new Error("Faltan campos obligatorios");
       }
-    ]);
 
-    if (error) {
-      console.error(error);
-      throw new Error("Error al guardar en la base de datos.");
+      if (isNaN(cantidad_existencias) || cantidad_existencias < 1) {
+        throw new Error("La cantidad de existencias debe ser al menos 1");
+      }
+
+      const token_edicion = crypto.randomUUID();
+
+      // Insertar en Supabase
+      const { error } = await supabase.from('suministros_ayuda').insert([
+        { 
+          tipo_anuncio,
+          categoria,
+          titulo_item,
+          descripcion,
+          cantidad_existencias,
+          unidad_medida,
+          estado,
+          ciudad_municipio,
+          direccion_referencia,
+          contacto,
+          latitud: isNaN(latitud as any) ? null : latitud,
+          longitud: isNaN(longitud as any) ? null : longitud,
+          imagen_url,
+          token_edicion
+        }
+      ]);
+
+      if (error) {
+        console.error(error);
+        throw new Error("Error al guardar en la base de datos.");
+      }
+      
+      mensaje = 'Anuncio guardado con éxito. Desde este dispositivo podrás marcarlo como resuelto cuando ya no esté disponible.';
+      mensajeTipo = 'success';
+      // @ts-ignore
+      Astro.locals._nuevoToken = token_edicion;
     }
-    
-    mensaje = 'Anuncio de suministro guardado con éxito. Aparecerá en la lista a continuación.';
-    mensajeTipo = 'success';
   } catch (error: any) {
     mensaje = error.message || 'Hubo un error al procesar el suministro.';
     mensajeTipo = 'error';
@@ -75,6 +91,8 @@ const url = new URL(Astro.request.url);
 const buscar = url.searchParams.get('q') || '';
 const ubicacion = url.searchParams.get('ubicacion') || '';
 const filtroTipo = url.searchParams.get('tipo') || ''; // 'TENGO' o 'NECESITO'
+// @ts-ignore
+const nuevoToken = Astro.locals._nuevoToken || '';
 
 // Consultar los reportes activos
 let query = supabase
@@ -291,7 +309,7 @@ const markerItems = (suministros || []).map(item => ({
 		)}
 
 		{suministros && suministros.map((item) => (
-			<div class="card" style={`border-left: 5px solid ${item.tipo_anuncio === 'TENGO' ? '#2e7d32' : 'var(--primary-blue)'}`}>
+			<div class="card" data-token={item.token_edicion || ''} data-id={item.id} style={`border-left: 5px solid ${item.tipo_anuncio === 'TENGO' ? '#2e7d32' : 'var(--primary-blue)'}`}>
 				<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
 					<h3 style="margin: 0; font-size: 1.2rem;">{item.titulo_item}</h3>
 					<div style="display: flex; gap: 5px;">
@@ -305,7 +323,7 @@ const markerItems = (suministros || []).map(item => ({
 				{item.imagen_url && (
 					<details style="margin-bottom: 12px; max-width: 100%; border: none; padding: 0; background: transparent;">
 						<summary class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem; display: inline-block; margin-bottom: 8px;">📷 Ver Foto Adjunta</summary>
-						<img src={optimizarImagen(item.imagen_url)} alt={`Foto de ${item.titulo_item}`} style="max-width: 100%; max-height: 250px; border-radius: 6px; object-fit: cover; border: 2px solid var(--border-color); display: block;" />
+						<img src={optimizarImagen(item.imagen_url)} alt={`Foto de ${item.titulo_item}`} class="img-zoomable" style="max-width: 100%; max-height: 250px; border-radius: 6px; object-fit: cover; border: 2px solid var(--border-color); display: block;" />
 					</details>
 				)}
 
@@ -328,7 +346,16 @@ const markerItems = (suministros || []).map(item => ({
 						Contacto: <strong>{item.contacto}</strong>
 					</span>
 				</div>
-				<p style="margin-top: 10px; font-size: 0.8rem; color: #777;">
+
+				<!-- Botón owner: se muestra via JS -->
+				<form method="POST" class="owner-actions" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color);">
+					<input type="hidden" name="action" value="resolver_suministro" />
+					<input type="hidden" name="id" value={item.id} />
+					<input type="hidden" name="token_edicion" value={item.token_edicion} />
+					<button type="submit" style="width: 100%; padding: 10px; background: #b45309; color: white;">✅ {item.tipo_anuncio === 'TENGO' ? 'Ya no disponible / Entregado' : 'Ya lo conseguí'}</button>
+				</form>
+
+				<p style="margin-top: 10px; font-size: 0.8rem; color: #777;" data-created={item.creado_el}>
 					Publicado el {new Date(item.creado_el).toLocaleDateString('es-VE', { hour: '2-digit', minute:'2-digit' })}
 				</p>
 			</div>
@@ -336,7 +363,7 @@ const markerItems = (suministros || []).map(item => ({
 	</div>
 
 	<!-- Credenciales de Supabase en un contenedor oculto para uso del script del cliente -->
-	<div id="credentials-holder" data-url={import.meta.env.SUPABASE_URL} data-key={import.meta.env.SUPABASE_ANON_KEY} style="display: none;"></div>
+	<div id="credentials-holder" data-url={import.meta.env.SUPABASE_URL} data-key={import.meta.env.SUPABASE_ANON_KEY} data-nuevo-token={nuevoToken} style="display: none;"></div>
 
 	<script>
 	  import { compressAndUploadImage } from '../lib/clientStorage';
@@ -435,6 +462,56 @@ const markerItems = (suministros || []).map(item => ({
 						ciudadSelect.appendChild(option);
 					});
 				});
+			});
+		});
+	</script>
+
+	<!-- localStorage: guardar token y detectar posts propios -->
+	<script is:inline>
+		document.addEventListener("DOMContentLoaded", function() {
+			var holder = document.getElementById("credentials-holder");
+			var nuevoToken = holder ? holder.getAttribute("data-nuevo-token") : "";
+
+			if (nuevoToken) {
+				try {
+					var tokens = JSON.parse(localStorage.getItem("mis_reportes_suministros") || "[]");
+					tokens.push(nuevoToken);
+					localStorage.setItem("mis_reportes_suministros", JSON.stringify(tokens));
+				} catch(e) {}
+			}
+
+			try {
+				var misTokens = JSON.parse(localStorage.getItem("mis_reportes_suministros") || "[]");
+				if (misTokens.length > 0) {
+					var cards = document.querySelectorAll(".card[data-token]");
+					cards.forEach(function(card) {
+						var cardToken = card.getAttribute("data-token");
+						if (cardToken && misTokens.indexOf(cardToken) !== -1) {
+							var ownerForm = card.querySelector(".owner-actions");
+							if (ownerForm) ownerForm.style.display = "block";
+						}
+					});
+				}
+			} catch(e) {}
+
+			// Relative time + age warning
+			var timeEls = document.querySelectorAll("[data-created]");
+			var now = new Date();
+			timeEls.forEach(function(el) {
+				var created = new Date(el.getAttribute("data-created"));
+				var diffMs = now - created;
+				var diffHours = Math.floor(diffMs / 3600000);
+				var diffDays = Math.floor(diffHours / 24);
+				var relText = "";
+				if (diffDays > 0) relText = "Hace " + diffDays + (diffDays === 1 ? " día" : " días");
+				else if (diffHours > 0) relText = "Hace " + diffHours + (diffHours === 1 ? " hora" : " horas");
+				else relText = "Hace menos de 1 hora";
+				el.textContent = relText;
+				if (diffDays >= 3) {
+					el.textContent = "⚠️ " + relText + " — verificar disponibilidad";
+					el.style.color = "#b45309";
+					el.style.fontWeight = "600";
+				}
 			});
 		});
 	</script>
