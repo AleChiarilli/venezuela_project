@@ -146,105 +146,110 @@ const markerItems = (suministros || []).map(item => ({
 		</div>
 	)}
 
-	<details style="margin-bottom: 30px;">
-		<summary class="btn btn-secondary" style="margin-bottom: 15px;">+ Publicar Ayuda o Necesidad</summary>
-		<form method="POST">
-			<div class="form-group">
-				<label>¿Qué deseas hacer? *</label>
-				<select name="tipo_anuncio" required>
-					<option value="NECESITO">Necesitamos este recurso con urgencia</option>
-					<option value="TENGO">Tengo este recurso para donar/compartir</option>
-				</select>
-			</div>
-
-			<div class="form-group">
-				<label>Categoría *</label>
-				<select name="categoria" required>
-					<option value="ALIMENTOS">Comida y Alimentos Compartidos</option>
-					<option value="MEDICINAS">Medicinas y Primeros Auxilios</option>
-					<option value="AGUA">Agua Potable y Limpia</option>
-					<option value="HIGIENE">Aseo e Higiene Personal</option>
-					<option value="TRANSPORTE">Vehículos y Traslados</option>
-					<option value="SALUD">Apoyo Médico y Psicológico</option>
-					<option value="VOLUNTARIADO">Manos para Ayudar (Voluntarios)</option>
-					<option value="OTROS">Otros Apoyos y Servicios</option>
-				</select>
-			</div>
-
-			<div class="form-group">
-				<label>Título del Recurso o Servicio *</label>
-				<input type="text" name="titulo_item" placeholder="Ej: Generador para cargar el teléfono por horas, Harina de maíz, Camioneta para traslados" required />
-			</div>
-
-			<div style="display: flex; gap: 10px; flex-wrap: wrap;">
-				<div class="form-group" style="flex: 2; min-width: 150px;">
-					<label>Cantidad Disponible/Requerida *</label>
-					<input type="number" name="cantidad_existencias" value="1" min="1" step="1" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 1rem;" required />
-				</div>
-				<div class="form-group" style="flex: 1; min-width: 120px;">
-					<label>Unidad *</label>
-					<select name="unidad_medida" required>
-						<option value="unidades">Unidades / Piezas</option>
-						<option value="kilos">Kilogramos (kg)</option>
-						<option value="litros">Litros (L)</option>
-						<option value="paquetes">Paquetes / Bultos</option>
+	<details style="margin-bottom: 30px; border: 2px solid var(--primary-blue); background-color: #f0f7ff; padding: 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 91, 181, 0.08);">
+		<summary class="btn" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin: 0 auto; max-width: 550px; font-size: 1.2rem; cursor: pointer; border: none; outline: none; box-shadow: 0 4px 10px rgba(0, 91, 181, 0.25);">
+			🤝 Ofrecer Ayuda / Pedir Comida y Apoyo
+		</summary>
+		
+		<div style="margin-top: 24px; background: #ffffff; padding: 20px; border-radius: 6px; border: 1px solid var(--border-color);">
+			<form method="POST">
+				<div class="form-group">
+					<label>¿Qué deseas hacer? *</label>
+					<select name="tipo_anuncio" required>
+						<option value="NECESITO">Necesitamos este recurso con urgencia</option>
+						<option value="TENGO">Tengo este recurso para donar/compartir</option>
 					</select>
 				</div>
-			</div>
 
-			<div class="form-group">
-				<label>Descripción detallada</label>
-				<textarea name="descripcion" placeholder="Ej: Ofrezco encender la planta eléctrica de 6:00 PM a 9:00 PM en el porche para que carguen sus baterías. Traer su propio cargador."></textarea>
-			</div>
-
-			<div style="display: flex; gap: 10px; flex-wrap: wrap;">
-				<div class="form-group" style="flex: 1; min-width: 150px;">
-					<label>Estado *</label>
-					<input type="text" name="estado" placeholder="Ej: Miranda" required />
+				<div class="form-group">
+					<label>Categoría *</label>
+					<select name="categoria" required>
+						<option value="ALIMENTOS">Comida y Alimentos Compartidos</option>
+						<option value="MEDICINAS">Medicinas y Primeros Auxilios</option>
+						<option value="AGUA">Agua Potable y Limpia</option>
+						<option value="HIGIENE">Aseo e Higiene Personal</option>
+						<option value="TRANSPORTE">Vehículos y Traslados</option>
+						<option value="SALUD">Apoyo Médico y Psicológico</option>
+						<option value="VOLUNTARIADO">Manos para Ayudar (Voluntarios)</option>
+						<option value="OTROS">Otros Apoyos y Servicios</option>
+					</select>
 				</div>
-				<div class="form-group" style="flex: 1; min-width: 150px;">
-					<label>Ciudad / Municipio *</label>
-					<input type="text" name="ciudad_municipio" placeholder="Ej: Chacao" required />
+
+				<div class="form-group">
+					<label>Título del Recurso o Servicio *</label>
+					<input type="text" name="titulo_item" placeholder="Ej: Generador para cargar el teléfono por horas, Harina de maíz, Camioneta para traslados" required />
 				</div>
-			</div>
 
-			<div class="form-group">
-				<label>Dirección exacta o Referencia de ubicación *</label>
-				<input type="text" name="direccion_referencia" placeholder="Ej: Av. Francisco de Miranda, Edif. Roxana, PB" required />
-			</div>
-
-			<div class="form-group">
-				<label>Información de Contacto *</label>
-				<input type="text" name="contacto" placeholder="Ej: Teléfono o Telegram @usuario" required />
-				<small style="color: #666;">Indica la mejor forma para que se comuniquen contigo directamente.</small>
-			</div>
-
-			<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;" class="form-group">
-				<div style="flex: 1; min-width: 200px;">
-					<label>Coordenadas GPS (Recomendado para el Mapa interactivo)</label>
-					<div style="display: flex; gap: 8px;">
-						<input type="text" id="input-lat" name="latitud" placeholder="Latitud (Ej: 10.496)" readonly style="background: var(--bg-gray); cursor: not-allowed;" />
-						<input type="text" id="input-lon" name="longitud" placeholder="Longitud (Ej: -66.879)" readonly style="background: var(--bg-gray); cursor: not-allowed;" />
+				<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+					<div class="form-group" style="flex: 2; min-width: 150px;">
+						<label>Cantidad Disponible/Requerida *</label>
+						<input type="number" name="cantidad_existencias" value="1" min="1" step="1" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 1rem;" required />
+					</div>
+					<div class="form-group" style="flex: 1; min-width: 120px;">
+						<label>Unidad *</label>
+						<select name="unidad_medida" required>
+							<option value="unidades">Unidades / Piezas</option>
+							<option value="kilos">Kilogramos (kg)</option>
+							<option value="litros">Litros (L)</option>
+							<option value="paquetes">Paquetes / Bultos</option>
+						</select>
 					</div>
 				</div>
-				<button type="button" id="btn-gps" class="btn btn-secondary" style="height: 48px; padding: 0 15px; font-size: 0.9rem; white-space: nowrap;">
-					📍 Capturar GPS
-				</button>
-			</div>
-			<div style="font-size: 0.85rem; color: #444; margin-top: -10px; margin-bottom: 5px; line-height: 1.4;">
-				<strong>🔒 Privacidad y utilidad:</strong> Tu navegador te pedirá permiso (es totalmente seguro). Tu ubicación ayuda a que los vecinos que estén cerca puedan encontrar esta información fácilmente en el mapa interactivo. ¡Por favor, apruébalo!
-			</div>
-			<div id="gps-status" style="font-size: 0.85rem; color: #555; margin-bottom: 15px;"></div>
 
-			<div class="form-group">
-				<label>Foto del Recurso/Lugar (Opcional - Se comprime automáticamente)</label>
-				<input type="file" id="image-file" accept="image/*" style="border: 2px solid var(--border-color); padding: 8px; width: 100%; border-radius: 6px; font-size: 0.95rem;" />
-				<input type="hidden" name="imagen_url" id="input-imagen-url" />
-				<div id="upload-status" style="font-size: 0.85rem; color: #555; margin-top: 5px;"></div>
-			</div>
+				<div class="form-group">
+					<label>Descripción detallada</label>
+					<textarea name="descripcion" placeholder="Ej: Ofrezco encender la planta eléctrica de 6:00 PM a 9:00 PM en el porche para que carguen sus baterías. Traer su propio cargador."></textarea>
+				</div>
 
-			<button type="submit">Publicar Anuncio</button>
-		</form>
+				<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+					<div class="form-group" style="flex: 1; min-width: 150px;">
+						<label>Estado *</label>
+						<input type="text" name="estado" placeholder="Ej: Miranda" required />
+					</div>
+					<div class="form-group" style="flex: 1; min-width: 150px;">
+						<label>Ciudad / Municipio *</label>
+						<input type="text" name="ciudad_municipio" placeholder="Ej: Chacao" required />
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label>Dirección exacta o Referencia de ubicación *</label>
+					<input type="text" name="direccion_referencia" placeholder="Ej: Av. Francisco de Miranda, Edif. Roxana, PB" required />
+				</div>
+
+				<div class="form-group">
+					<label>Información de Contacto *</label>
+					<input type="text" name="contacto" placeholder="Ej: Teléfono o Telegram @usuario" required />
+					<small style="color: #666;">Indica la mejor forma para que se comuniquen contigo directamente.</small>
+				</div>
+
+				<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;" class="form-group">
+					<div style="flex: 1; min-width: 200px;">
+						<label>Coordenadas GPS (Recomendado para el Mapa interactivo)</label>
+						<div style="display: flex; gap: 8px;">
+							<input type="text" id="input-lat" name="latitud" placeholder="Latitud (Ej: 10.496)" readonly style="background: var(--bg-gray); cursor: not-allowed;" />
+							<input type="text" id="input-lon" name="longitud" placeholder="Longitud (Ej: -66.879)" readonly style="background: var(--bg-gray); cursor: not-allowed;" />
+						</div>
+					</div>
+					<button type="button" id="btn-gps" class="btn btn-secondary" style="height: 48px; padding: 0 15px; font-size: 0.9rem; white-space: nowrap;">
+						📍 Capturar GPS
+					</button>
+				</div>
+				<div style="font-size: 0.85rem; color: #444; margin-top: -10px; margin-bottom: 5px; line-height: 1.4;">
+					<strong>🔒 Privacidad y utilidad:</strong> Tu navegador te pedirá permiso (es totalmente seguro). Tu ubicación ayuda a que los vecinos que estén cerca puedan encontrar esta información fácilmente en el mapa interactivo. ¡Por favor, apruébalo!
+				</div>
+				<div id="gps-status" style="font-size: 0.85rem; color: #555; margin-bottom: 15px;"></div>
+
+				<div class="form-group">
+					<label>Foto del Recurso/Lugar (Opcional - Se comprime automáticamente)</label>
+					<input type="file" id="image-file" accept="image/*" style="border: 2px solid var(--border-color); padding: 8px; width: 100%; border-radius: 6px; font-size: 0.95rem;" />
+					<input type="hidden" name="imagen_url" id="input-imagen-url" />
+					<div id="upload-status" style="font-size: 0.85rem; color: #555; margin-top: 5px;"></div>
+				</div>
+
+				<button type="submit">Publicar Anuncio</button>
+			</form>
+		</div>
 	</details>
 
 	<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;" />
