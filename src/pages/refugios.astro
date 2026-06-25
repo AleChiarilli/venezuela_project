@@ -147,13 +147,13 @@ const markerItems = (refugios || []).map(item => ({
 				</div>
 
 				<div class="form-group">
-					<label>Capacidad (Nro. aproximado de Personas) *</label>
+					<label id="capacidad-label">Capacidad (Nro. aproximado de Personas) *</label>
 					<input type="number" name="capacidad_personas" value="1" min="1" step="1" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 1rem;" required />
 				</div>
 
 				<div class="form-group">
-					<label>Descripción de las condiciones o requerimientos *</label>
-					<textarea name="descripcion" placeholder="Ej: Ofrezco habitación con baño privado y luz de planta eléctrica 2h al día. / Somos una familia de 3 adultos y 1 bebé con 1 perro buscando refugio." required></textarea>
+					<label id="descripcion-label">Descripción de las condiciones o requerimientos *</label>
+					<textarea name="descripcion" id="descripcion-input" placeholder="Ej: Ofrezco habitación con baño privado y luz de planta eléctrica 2h al día. / Somos una familia de 3 adultos y 1 bebé con 1 perro buscando refugio." required></textarea>
 				</div>
 
 				<div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -173,8 +173,8 @@ const markerItems = (refugios || []).map(item => ({
 				</div>
 
 				<div class="form-group">
-					<label>Dirección exacta o Referencia de ubicación *</label>
-					<input type="text" name="direccion_referencia" placeholder="Ej: Av. Francisco de Miranda, Edif. Roxana, PB" required />
+					<label id="direccion-label">Dirección exacta o Referencia de ubicación *</label>
+					<input type="text" name="direccion_referencia" id="direccion-input" placeholder="Ej: Av. Francisco de Miranda, Edif. Roxana, PB" required />
 				</div>
 
 				<div class="form-group">
@@ -185,18 +185,18 @@ const markerItems = (refugios || []).map(item => ({
 
 				<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;" class="form-group">
 					<div style="flex: 1; min-width: 200px;">
-						<label>Coordenadas GPS (Recomendado para el Mapa interactivo)</label>
+						<label>Coordenadas GPS (Opcional - Recomendado para el Mapa)</label>
 						<div style="display: flex; gap: 8px;">
-							<input type="text" id="input-lat" name="latitud" placeholder="Latitud (Ej: 10.496)" readonly style="background: var(--bg-gray); cursor: not-allowed;" />
-							<input type="text" id="input-lon" name="longitud" placeholder="Longitud (Ej: -66.879)" readonly style="background: var(--bg-gray); cursor: not-allowed;" />
+							<input type="text" id="input-lat" name="latitud" placeholder="Latitud (Ej: 10.496)" style="flex: 1; min-width: 80px;" />
+							<input type="text" id="input-lon" name="longitud" placeholder="Longitud (Ej: -66.879)" style="flex: 1; min-width: 80px;" />
 						</div>
 					</div>
 					<button type="button" id="btn-gps" class="btn btn-secondary" style="height: 48px; padding: 0 15px; font-size: 0.9rem; white-space: nowrap;">
-						📍 Capturar GPS
+						📍 Capturar mi GPS actual
 					</button>
 				</div>
 				<div style="font-size: 0.85rem; color: #444; margin-top: -10px; margin-bottom: 5px; line-height: 1.4;">
-					<strong>🔒 Privacidad y utilidad:</strong> Tu navegador te pedirá permiso (es totalmente seguro). Tu ubicación ayuda a que los vecinos que estén cerca puedan encontrar esta información fácilmente en el mapa interactivo. ¡Por favor, apruébalo!
+					<strong>📍 Importante:</strong> Puedes presionar el botón para usar tu ubicación, o si reportas un lugar lejano, búscalo en Google Maps y escribe o pega manualmente las coordenadas aquí.
 				</div>
 				<div id="gps-status" style="font-size: 0.85rem; color: #555; margin-bottom: 15px;"></div>
 
@@ -387,21 +387,45 @@ const markerItems = (refugios || []).map(item => ({
 			const contactoLabel = document.getElementById("contacto-label");
 			const contactoHelp = document.getElementById("contacto-help");
 
-			if (tipoAnuncioSelect && contactoInput && contactoLabel && contactoHelp) {
-				tipoAnuncioSelect.addEventListener("change", (e) => {
-					const val = (e.target as HTMLSelectElement).value;
+			const capacidadLabel = document.getElementById("capacidad-label");
+			const descripcionLabel = document.getElementById("descripcion-label");
+			const descripcionInput = document.getElementById("descripcion-input") as HTMLTextAreaElement;
+			const direccionLabel = document.getElementById("direccion-label");
+			const direccionInput = document.getElementById("direccion-input") as HTMLInputElement;
+
+			if (tipoAnuncioSelect && contactoInput) {
+				const updateLabels = () => {
+					const val = tipoAnuncioSelect.value;
+					
+					if (val === "BUSCO_TECHO") {
+						if(capacidadLabel) capacidadLabel.innerText = "¿Cuántas personas son en tu grupo? *";
+						if(descripcionLabel) descripcionLabel.innerText = "Describe tu situación y qué necesitas *";
+						if(descripcionInput) descripcionInput.placeholder = "Ej: Somos una familia de 3 adultos y 1 bebé con 1 perro. Necesitamos un lugar seguro donde dormir 2 noches.";
+						if(direccionLabel) direccionLabel.innerText = "Zona donde te encuentras o donde buscas refugio *";
+						if(direccionInput) direccionInput.placeholder = "Ej: Estoy cerca del C.C. Sambil o Busco por Chacao";
+					} else {
+						if(capacidadLabel) capacidadLabel.innerText = "Capacidad (Nro. aproximado de Personas que puedes alojar) *";
+						if(descripcionLabel) descripcionLabel.innerText = "Descripción de las condiciones o reglas del lugar *";
+						if(descripcionInput) descripcionInput.placeholder = "Ej: Ofrezco habitación con baño privado y luz de planta eléctrica 2h al día. No se aceptan mascotas.";
+						if(direccionLabel) direccionLabel.innerText = "Dirección exacta o Referencia de ubicación *";
+						if(direccionInput) direccionInput.placeholder = "Ej: Av. Francisco de Miranda, Edif. Roxana, PB";
+					}
+
 					if (val === "REPORTO_PUBLICO") {
 						contactoInput.required = false;
 						contactoInput.placeholder = "Opcional (Ej: número de la iglesia o lugar)";
-						contactoLabel.innerText = "Información de Contacto del lugar (Opcional)";
-						contactoHelp.innerText = "Si tienes un número de teléfono a mano para aportar es súper valioso y útil, aunque no seas el dueño. Si no lo conoces, puedes dejarlo en blanco.";
+						if(contactoLabel) contactoLabel.innerText = "Información de Contacto del lugar (Opcional)";
+						if(contactoHelp) contactoHelp.innerText = "Si tienes un número de teléfono a mano para aportar es súper valioso y útil, aunque no seas el dueño. Si no lo conoces, puedes dejarlo en blanco.";
 					} else {
 						contactoInput.required = true;
 						contactoInput.placeholder = "Ej: Teléfono, Telegram @usuario, Instagram @usuario";
-						contactoLabel.innerText = "Información de Contacto *";
-						contactoHelp.innerText = "Indica la mejor forma para que se comuniquen contigo directamente.";
+						if(contactoLabel) contactoLabel.innerText = "Información de Contacto *";
+						if(contactoHelp) contactoHelp.innerText = "Indica la mejor forma para que se comuniquen contigo directamente.";
 					}
-				});
+				};
+
+				tipoAnuncioSelect.addEventListener("change", updateLabels);
+				updateLabels(); // Ejecutar una vez al cargar
 			}
 		});
 	</script>
