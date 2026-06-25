@@ -1,0 +1,194 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { supabase, optimizarImagen } from '../lib/supabase';
+
+let mensaje = '';
+let mensajeTipo = ''; // 'success' o 'error'
+
+// Procesar el formulario si es POST (Zero-JS)
+if (Astro.request.method === 'POST') {
+  try {
+    const data = await Astro.request.formData();
+    
+    // Extrayendo y limpiando datos
+    const tipo_reporte = data.get('tipo_reporte')?.toString() || 'BUSCO';
+    const nombre_completo = data.get('nombre_completo')?.toString().trim() || '';
+    const estado = data.get('estado')?.toString().trim() || '';
+    const ciudad_municipio = data.get('ciudad_municipio')?.toString().trim() || '';
+    const direccion_referencia = data.get('direccion_referencia')?.toString().trim() || '';
+    const vestimenta_rasgos = data.get('vestimenta_rasgos')?.toString().trim() || '';
+    const contacto_reportante = data.get('contacto_reportante')?.toString().trim() || '';
+    const estado_vital = data.get('estado_vital')?.toString() || 'DESAPARECIDO';
+
+    if (!nombre_completo || !estado || !ciudad_municipio || !contacto_reportante) {
+      throw new Error("Faltan campos obligatorios");
+    }
+
+    // Insertar en Supabase
+    const { error } = await supabase.from('personas_busquedas').insert([
+      { 
+        tipo_reporte, 
+        nombre_completo, 
+        estado, 
+        ciudad_municipio, 
+        direccion_referencia, 
+        vestimenta_rasgos, 
+        contacto_reportante, 
+        estado_vital 
+      }
+    ]);
+
+    if (error) {
+      console.error(error);
+      throw new Error("Error al guardar en la base de datos.");
+    }
+    
+    mensaje = 'Reporte guardado con éxito. Aparecerá en la lista a continuación.';
+    mensajeTipo = 'success';
+  } catch (error: any) {
+    mensaje = error.message || 'Hubo un error al procesar el reporte.';
+    mensajeTipo = 'error';
+  }
+}
+
+// Búsqueda simple (si hay query string)
+const url = new URL(Astro.request.url);
+const buscar = url.searchParams.get('q') || '';
+
+// Consultar los reportes activos
+let query = supabase
+  .from('personas_busquedas')
+  .select('*')
+  .eq('resuelto', false)
+  .order('creado_el', { ascending: false });
+
+if (buscar) {
+  // Buscar en nombre_completo o en ciudad_municipio
+  query = query.or(`nombre_completo.ilike.%${buscar}%,ciudad_municipio.ilike.%${buscar}%`);
+}
+
+const { data: personas, error: fetchError } = await query;
+---
+
+<Layout title="Personas Desaparecidas">
+	<div style="margin-bottom: 20px;">
+		<a href="/" style="text-decoration: none; color: var(--accent);">← Volver al Inicio</a>
+	</div>
+
+	<h1 style="margin-bottom: 10px;">Tablón de Personas</h1>
+	<p style="margin-bottom: 20px; color: #555;">Ayuda a conectar a personas desaparecidas o encontradas. Todos los campos marcados con * son obligatorios.</p>
+
+	{mensaje && (
+		<div class="card" style={`background-color: ${mensajeTipo === 'success' ? '#c8e6c9' : '#ffcdd2'}; border-color: ${mensajeTipo === 'success' ? '#81c784' : '#e57373'};`}>
+			<strong>{mensajeTipo === 'success' ? 'Éxito:' : 'Error:'}</strong> {mensaje}
+		</div>
+	)}
+
+	<details style="margin-bottom: 30px;">
+		<summary class="btn btn-secondary" style="margin-bottom: 15px;">+ Añadir Nuevo Reporte</summary>
+		<form method="POST">
+			<div class="form-group">
+				<label>Tipo de Reporte *</label>
+				<select name="tipo_reporte" required>
+					<option value="BUSCO">Busco a una persona</option>
+					<option value="ENCONTRADO">Encontré a una persona</option>
+				</select>
+			</div>
+
+			<div class="form-group">
+				<label>Nombre y Apellido *</label>
+				<input type="text" name="nombre_completo" placeholder="Ej: Juan Pérez" required />
+			</div>
+
+			<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+				<div class="form-group" style="flex: 1; min-width: 150px;">
+					<label>Estado *</label>
+					<!-- Para MVP usamos texto, en V2 podríamos usar un select -->
+					<input type="text" name="estado" placeholder="Ej: Distrito Capital" required />
+				</div>
+				<div class="form-group" style="flex: 1; min-width: 150px;">
+					<label>Ciudad / Municipio *</label>
+					<input type="text" name="ciudad_municipio" placeholder="Ej: Chacao" required />
+				</div>
+			</div>
+
+			<div class="form-group">
+				<label>Dirección o Referencia de último paradero</label>
+				<input type="text" name="direccion_referencia" placeholder="Ej: Cerca de la plaza, edif. azul" />
+			</div>
+
+			<div class="form-group">
+				<label>Rasgos Físicos y Vestimenta</label>
+				<textarea name="vestimenta_rasgos" placeholder="Ej: Franela roja, jeans, cicatriz en la mano derecha. Edad aprox 40 años."></textarea>
+			</div>
+
+			<div class="form-group">
+				<label>Estado Vital *</label>
+				<select name="estado_vital" required>
+					<option value="DESAPARECIDO">Desaparecido / Sin contacto</option>
+					<option value="A SALVO">A salvo / Ileso</option>
+					<option value="HOSPITALIZADO">Hospitalizado / Herido</option>
+				</select>
+			</div>
+
+			<div class="form-group">
+				<label>Tu información de contacto *</label>
+				<input type="text" name="contacto_reportante" placeholder="Ej: WhatsApp +58..., Telegram @usuario" required />
+				<small style="color: #666;">No lo publiques si crees que es riesgoso, usa Telegram si es posible.</small>
+			</div>
+
+			<button type="submit">Enviar Reporte</button>
+		</form>
+	</details>
+
+	<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;" />
+
+	<h2>Listado de Búsqueda</h2>
+	<form method="GET" style="background: none; border: none; padding: 0; margin-top: 10px; margin-bottom: 20px; display: flex; gap: 10px;">
+		<input type="text" name="q" placeholder="Buscar por nombre o ciudad..." value={buscar} style="flex: 1;" />
+		<button type="submit" style="width: auto;">Buscar</button>
+		{buscar && <a href="/personas" class="btn btn-secondary" style="width: auto;">Limpiar</a>}
+	</form>
+
+	<div class="lista">
+		{fetchError && <p>Error al cargar los datos: {fetchError.message}</p>}
+		
+		{(!personas || personas.length === 0) && !fetchError && (
+			<p>No hay reportes activos en este momento.</p>
+		)}
+
+		{personas && personas.map((persona) => (
+			<div class="card">
+				<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+					<h3 style="margin: 0; font-size: 1.2rem;">{persona.nombre_completo}</h3>
+					<span class={`badge ${persona.tipo_reporte === 'BUSCO' ? 'badge-danger' : 'badge-success'}`}>
+						{persona.tipo_reporte}
+					</span>
+				</div>
+				
+				<p style="margin-bottom: 5px; font-size: 0.95rem;">
+					<strong>📍 Ubicación:</strong> {persona.ciudad_municipio}, {persona.estado}
+					{persona.direccion_referencia && ` (${persona.direccion_referencia})`}
+				</p>
+				
+				{persona.vestimenta_rasgos && (
+					<p style="margin-bottom: 5px; font-size: 0.95rem;">
+						<strong>👤 Rasgos:</strong> {persona.vestimenta_rasgos}
+					</p>
+				)}
+
+				<div style="display: flex; gap: 10px; margin-top: 12px; font-size: 0.9rem;">
+					<span style="background: #eee; padding: 3px 8px; border-radius: 4px;">
+						Estado: <strong>{persona.estado_vital}</strong>
+					</span>
+					<span style="background: #eee; padding: 3px 8px; border-radius: 4px;">
+						Contacto: <strong>{persona.contacto_reportante}</strong>
+					</span>
+				</div>
+				<p style="margin-top: 10px; font-size: 0.8rem; color: #777;">
+					Reportado el {new Date(persona.creado_el).toLocaleDateString('es-VE', { hour: '2-digit', minute:'2-digit' })}
+				</p>
+			</div>
+		))}
+	</div>
+</Layout>

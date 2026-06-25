@@ -1,0 +1,27 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Inicio">
+	<div class="text-center" style="margin-top: 40px; margin-bottom: 40px;">
+		<h1 style="font-size: 2rem; margin-bottom: 10px;">Plataforma de Ayuda Humanitaria</h1>
+		<p style="font-size: 1.1rem; color: #444; margin-bottom: 30px;">
+			Diseñada para funcionar en redes 2G/3G inestables. Selecciona una opción:
+		</p>
+	</div>
+
+	<div style="display: flex; flex-direction: column; gap: 20px;">
+		<a href="/personas" class="card" style="text-decoration: none; color: inherit; display: block; padding: 20px;">
+			<h2 style="color: var(--primary); margin-bottom: 5px;">🔍 Personas Desaparecidas</h2>
+			<p>Reporta familiares desaparecidos o busca personas encontradas.</p>
+		</a>
+		<a href="/suministros" class="card" style="text-decoration: none; color: inherit; display: block; padding: 20px; opacity: 0.7;">
+			<h2 style="color: var(--accent); margin-bottom: 5px;">📦 Suministros y Alimentos</h2>
+			<p>Ofrece lo que tienes o solicita lo que necesitas (Próximamente).</p>
+		</a>
+		<a href="/refugios" class="card" style="text-decoration: none; color: inherit; display: block; padding: 20px; opacity: 0.7;">
+			<h2 style="color: #2e7d32; margin-bottom: 5px;">🏠 Albergues Temporales</h2>
+			<p>Busca techo o reporta espacios disponibles para alojar personas (Próximamente).</p>
+		</a>
+	</div>
+</Layout>
