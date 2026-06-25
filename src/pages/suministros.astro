@@ -68,8 +68,8 @@ const filtroTipo = url.searchParams.get('tipo') || ''; // 'TENGO' o 'NECESITO'
 let query = supabase
   .from('suministros_ayuda')
   .select('*')
-  .eq('resuelto', false)
-  .order('creado_el', { ascending: false });
+  .eq('estatus_actual', 'ACTIVO')
+  .order('created_at', { ascending: false });
 
 if (buscar) {
   query = query.or(`titulo_item.ilike.%${buscar}%,ciudad_municipio.ilike.%${buscar}%,descripcion.ilike.%${buscar}%`);
@@ -87,8 +87,8 @@ const { data: suministros, error: fetchError } = await query;
 		<a href="/" style="text-decoration: none; color: var(--accent);">← Volver al Inicio</a>
 	</div>
 
-	<h1 style="margin-bottom: 10px;">Suministros y Alimentos</h1>
-	<p style="margin-bottom: 20px; color: #555;">Registra lo que tienes para ofrecer a los afectados o publica lo que necesitas con urgencia. Todos los campos con * son obligatorios.</p>
+	<h1 style="margin-bottom: 10px;">Acopio y Necesidades Urgentes</h1>
+	<p style="margin-bottom: 20px; color: #555;">La solidaridad nos mantiene a flote. Comparte si dispones de agua, comida o medicinas para donar, o solicita lo que tú y tu comunidad necesitan urgentemente. Todos los campos con * son obligatorios.</p>
 
 	{mensaje && (
 		<div class="card" style={`background-color: ${mensajeTipo === 'success' ? '#c8e6c9' : '#ffcdd2'}; border-color: ${mensajeTipo === 'success' ? '#81c784' : '#e57373'};`}>
@@ -97,13 +97,13 @@ const { data: suministros, error: fetchError } = await query;
 	)}
 
 	<details style="margin-bottom: 30px;">
-		<summary class="btn btn-secondary" style="margin-bottom: 15px;">+ Añadir Oferta o Necesidad</summary>
+		<summary class="btn btn-secondary" style="margin-bottom: 15px;">+ Publicar Ayuda o Necesidad</summary>
 		<form method="POST">
 			<div class="form-group">
 				<label>¿Qué deseas hacer? *</label>
 				<select name="tipo_anuncio" required>
-					<option value="NECESITO">Necesito / Solicito este recurso</option>
-					<option value="TENGO">Tengo / Ofrezco este recurso</option>
+					<option value="NECESITO">Necesitamos este recurso con urgencia</option>
+					<option value="TENGO">Tengo este recurso para donar/compartir</option>
 				</select>
 			</div>
 
@@ -182,9 +182,9 @@ const { data: suministros, error: fetchError } = await query;
 		</div>
 		<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
 			<span style="font-size: 0.9rem; font-weight: bold;">Filtrar por tipo:</span>
-			<a href={`/suministros?q=${buscar}`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${!filtroTipo ? 'background-color: var(--primary);' : ''}`}>Todos</a>
-			<a href={`/suministros?q=${buscar}&tipo=TENGO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'TENGO' ? 'background-color: var(--primary);' : ''}`}>Ofertas (Tengo)</a>
-			<a href={`/suministros?q=${buscar}&tipo=NECESITO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'NECESITO' ? 'background-color: var(--primary);' : ''}`}>Necesidades (Necesito)</a>
+			<a href={`/suministros?q=${buscar}`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${!filtroTipo ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Todos</a>
+			<a href={`/suministros?q=${buscar}&tipo=TENGO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'TENGO' ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Ofertas (Tengo)</a>
+			<a href={`/suministros?q=${buscar}&tipo=NECESITO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'NECESITO' ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Necesidades (Necesito)</a>
 		</div>
 	</form>
 
@@ -196,7 +196,7 @@ const { data: suministros, error: fetchError } = await query;
 		)}
 
 		{suministros && suministros.map((item) => (
-			<div class="card" style={`border-left: 5px solid ${item.tipo_anuncio === 'TENGO' ? '#2e7d32' : 'var(--primary)'}`}>
+			<div class="card" style={`border-left: 5px solid ${item.tipo_anuncio === 'TENGO' ? '#2e7d32' : 'var(--primary-blue)'}`}>
 				<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
 					<h3 style="margin: 0; font-size: 1.2rem;">{item.titulo_item}</h3>
 					<div style="display: flex; gap: 5px;">
@@ -227,7 +227,7 @@ const { data: suministros, error: fetchError } = await query;
 					</span>
 				</div>
 				<p style="margin-top: 10px; font-size: 0.8rem; color: #777;">
-					Publicado el {new Date(item.creado_el).toLocaleDateString('es-VE', { hour: '2-digit', minute:'2-digit' })}
+					Publicado el {new Date(item.created_at).toLocaleDateString('es-VE', { hour: '2-digit', minute:'2-digit' })}
 				</p>
 			</div>
 		))}

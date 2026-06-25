@@ -62,8 +62,8 @@ const filtroTipo = url.searchParams.get('tipo') || ''; // 'OFREZCO_TECHO' o 'BUS
 let query = supabase
   .from('refugios_temporales')
   .select('*')
-  .eq('resuelto', false)
-  .order('creado_el', { ascending: false });
+  .eq('estatus_actual', 'ACTIVO')
+  .order('created_at', { ascending: false });
 
 if (buscar) {
   query = query.or(`descripcion.ilike.%${buscar}%,ciudad_municipio.ilike.%${buscar}%`);
@@ -81,8 +81,8 @@ const { data: refugios, error: fetchError } = await query;
 		<a href="/" style="text-decoration: none; color: var(--accent);">← Volver al Inicio</a>
 	</div>
 
-	<h1 style="margin-bottom: 10px;">Albergues y Refugios Temporales</h1>
-	<p style="margin-bottom: 20px; color: #555;">Registra espacios que puedas ofrecer a los afectados (habitaciones, locales, terrenos) o publica si tú y tu familia necesitan un techo temporal. Todos los campos con * son obligatorios.</p>
+	<h1 style="margin-bottom: 10px;">Refugios y Techo Seguro</h1>
+	<p style="margin-bottom: 20px; color: #555;">Ningún venezolano debería pasar la noche a la intemperie. Si tu casa o local es seguro, ofrece un espacio. Si tuviste que evacuar, solicita refugio aquí. Todos los campos con * son obligatorios.</p>
 
 	{mensaje && (
 		<div class="card" style={`background-color: ${mensajeTipo === 'success' ? '#c8e6c9' : '#ffcdd2'}; border-color: ${mensajeTipo === 'success' ? '#81c784' : '#e57373'};`}>
@@ -91,13 +91,13 @@ const { data: refugios, error: fetchError } = await query;
 	)}
 
 	<details style="margin-bottom: 30px;">
-		<summary class="btn btn-secondary" style="margin-bottom: 15px;">+ Añadir Refugio o Solicitud</summary>
+		<summary class="btn btn-secondary" style="margin-bottom: 15px;">+ Ofrecer o Solicitar Espacio Seguro</summary>
 		<form method="POST">
 			<div class="form-group">
 				<label>¿Qué deseas registrar? *</label>
 				<select name="tipo_anuncio" required>
-					<option value="BUSCO_TECHO">Busco / Necesito techo temporal</option>
-					<option value="OFREZCO_TECHO">Ofrezco espacio / Techo temporal</option>
+					<option value="BUSCO_TECHO">Necesitamos un lugar seguro donde dormir</option>
+					<option value="OFREZCO_TECHO">Tengo un espacio seguro para alojar a otros</option>
 				</select>
 			</div>
 
@@ -149,9 +149,9 @@ const { data: refugios, error: fetchError } = await query;
 		</div>
 		<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
 			<span style="font-size: 0.9rem; font-weight: bold;">Filtrar por tipo:</span>
-			<a href={`/refugios?q=${buscar}`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${!filtroTipo ? 'background-color: var(--primary);' : ''}`}>Todos</a>
-			<a href={`/refugios?q=${buscar}&tipo=OFREZCO_TECHO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'OFREZCO_TECHO' ? 'background-color: var(--primary);' : ''}`}>Ofertas (Ofrezco Techo)</a>
-			<a href={`/refugios?q=${buscar}&tipo=BUSCO_TECHO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'BUSCO_TECHO' ? 'background-color: var(--primary);' : ''}`}>Necesidades (Busco Techo)</a>
+			<a href={`/refugios?q=${buscar}`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${!filtroTipo ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Todos</a>
+			<a href={`/refugios?q=${buscar}&tipo=OFREZCO_TECHO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'OFREZCO_TECHO' ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Ofertas (Ofrezco Techo)</a>
+			<a href={`/refugios?q=${buscar}&tipo=BUSCO_TECHO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'BUSCO_TECHO' ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Necesidades (Busco Techo)</a>
 		</div>
 	</form>
 
@@ -163,7 +163,7 @@ const { data: refugios, error: fetchError } = await query;
 		)}
 
 		{refugios && refugios.map((item) => (
-			<div class="card" style={`border-left: 5px solid ${item.tipo_anuncio === 'OFREZCO_TECHO' ? '#2e7d32' : 'var(--primary)'}`}>
+			<div class="card" style={`border-left: 5px solid ${item.tipo_anuncio === 'OFREZCO_TECHO' ? '#2e7d32' : 'var(--primary-blue)'}`}>
 				<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
 					<h3 style="margin: 0; font-size: 1.2rem;">
 						{item.tipo_anuncio === 'OFREZCO_TECHO' ? 'Ofrece Espacio' : 'Busca Refugio'}
@@ -187,7 +187,7 @@ const { data: refugios, error: fetchError } = await query;
 					</span>
 				</div>
 				<p style="margin-top: 10px; font-size: 0.8rem; color: #777;">
-					Publicado el {new Date(item.creado_el).toLocaleDateString('es-VE', { hour: '2-digit', minute:'2-digit' })}
+					Publicado el {new Date(item.created_at).toLocaleDateString('es-VE', { hour: '2-digit', minute:'2-digit' })}
 				</p>
 			</div>
 		))}

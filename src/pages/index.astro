@@ -3,25 +3,93 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout title="Inicio">
-	<div class="text-center" style="margin-top: 40px; margin-bottom: 40px;">
-		<h1 style="font-size: 2rem; margin-bottom: 10px;">Mano Amiga</h1>
-		<p style="font-size: 1.1rem; color: #444; margin-bottom: 30px;">
-			Red de apoyo comunitario y ayuda mutua. Diseñada para conexiones lentas (2G/3G).
+	<div class="header-intro">
+		<h1>Red de Solidaridad Activa</h1>
+		<p class="lead">
+			En momentos difíciles, nuestra mayor fuerza somos nosotros mismos. Esta plataforma te permite pedir ayuda urgente o extender tu mano a quien lo necesita. Selecciona una opción para comenzar.
 		</p>
 	</div>
 
-	<div style="display: flex; flex-direction: column; gap: 20px;">
-		<a href="/personas" class="card" style="text-decoration: none; color: inherit; display: block; padding: 20px;">
-			<h2 style="color: var(--primary); margin-bottom: 5px;">🔍 Personas Desaparecidas</h2>
-			<p>Reporta familiares desaparecidos o busca personas encontradas.</p>
+	<div class="action-grid">
+		<a href="/personas" class="card">
+			<div class="card-header">
+				<span class="icon" aria-hidden="true">🔍</span>
+				<h2>Personas</h2>
+			</div>
+			<p>Reporta a un familiar desaparecido o informa si has encontrado a alguien.</p>
+			<span class="btn-link">Entrar aquí →</span>
 		</a>
-		<a href="/suministros" class="card" style="text-decoration: none; color: inherit; display: block; padding: 20px;">
-			<h2 style="color: var(--accent); margin-bottom: 5px;">📦 Suministros y Alimentos</h2>
-			<p>Ofrece lo que tienes o solicita lo que necesitas (Agua, comida, medicinas).</p>
+
+		<a href="/suministros" class="card">
+			<div class="card-header">
+				<span class="icon" aria-hidden="true">📦</span>
+				<h2>Suministros</h2>
+			</div>
+			<p>Ofrece o solicita agua, comida, medicamentos y otros insumos de primera necesidad.</p>
+			<span class="btn-link">Entrar aquí →</span>
 		</a>
-		<a href="/refugios" class="card" style="text-decoration: none; color: inherit; display: block; padding: 20px;">
-			<h2 style="color: #2e7d32; margin-bottom: 5px;">🏠 Albergues Temporales</h2>
-			<p>Busca techo o reporta espacios disponibles para alojar personas.</p>
+
+		<a href="/refugios" class="card">
+			<div class="card-header">
+				<span class="icon" aria-hidden="true">🏠</span>
+				<h2>Refugios</h2>
+			</div>
+			<p>Encuentra un lugar seguro para dormir o reporta si tienes un espacio disponible para alojar a otros.</p>
+			<span class="btn-link">Entrar aquí →</span>
 		</a>
 	</div>
 </Layout>
+
+<style>
+	.header-intro {
+		margin-bottom: 32px;
+	}
+	.header-intro h1 {
+		font-size: 2.5rem;
+		color: var(--primary-blue);
+	}
+	.lead {
+		font-size: 1.25rem;
+		color: #333;
+		font-weight: 500;
+	}
+
+	.action-grid {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+
+	.card-header {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		margin-bottom: 8px;
+	}
+	
+	.card-header .icon {
+		font-size: 2rem;
+	}
+
+	.card-header h2 {
+		margin-bottom: 0;
+		font-size: 1.5rem;
+		color: #111;
+	}
+
+	.card p {
+		font-size: 1.05rem;
+		margin-bottom: 16px;
+	}
+
+	.btn-link {
+		display: inline-block;
+		font-weight: bold;
+		color: var(--primary-blue);
+		font-size: 1.1rem;
+	}
+	
+	.card:hover .btn-link, .card:active .btn-link {
+		text-decoration: underline;
+	}
+</style>

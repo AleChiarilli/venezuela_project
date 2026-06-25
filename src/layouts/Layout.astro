@@ -12,15 +12,16 @@ const { title } = Astro.props;
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<meta name="description" content="Mano Amiga Venezuela - Plataforma de apoyo comunitario y ayuda humanitaria de carga rápida." />
-		<title>{title} | Mano Amiga Venezuela</title>
+		<meta name="description" content="Mano Amiga Venezuela - Plataforma de apoyo comunitario en emergencias." />
+		<title>{title} | Mano Amiga</title>
 	</head>
 	<body>
+		<div class="vzla-stripe"></div>
 		<header class="main-header">
 			<div class="container">
 				<a href="/" class="logo"><strong>Mano</strong>Amiga</a>
 				<nav>
-					<a href="/personas">Buscar Personas</a>
+					<a href="/personas">Personas</a>
 					<a href="/suministros">Suministros</a>
 					<a href="/refugios">Refugios</a>
 				</nav>
@@ -33,122 +34,186 @@ const { title } = Astro.props;
 
 		<footer>
 			<div class="container text-center">
-				<p>Mano Amiga - Plataforma de apoyo comunitario. Diseñada para funcionar sin JavaScript en redes 2G/3G.</p>
+				<p>Diseñado para situaciones de emergencia.<br/>Carga rápida, bajo consumo de datos.</p>
 			</div>
 		</footer>
 	</body>
 </html>
 
 <style is:global>
-	/* CSS RESET & VARIABLES CRÍTICAS DE RENDIMIENTO */
+	/* RESET & HIGH PERFORMANCE CSS */
 	:root {
 		--bg-color: #ffffff;
-		--text-color: #111111;
-		--primary: #d32f2f; /* Rojo de emergencia */
-		--primary-hover: #b71c1c;
-		--accent: #0d47a1; /* Azul informativo */
-		--gray-light: #f5f5f5;
-		--border-color: #cccccc;
+		--text-color: #1a1a1a;
+		--primary-blue: #005bb5; /* Trustworthy, calm blue */
+		--primary-blue-hover: #004488;
+		--border-color: #e0e0e0;
+		--bg-gray: #f5f5f5;
 	}
 
 	* { box-sizing: border-box; margin: 0; padding: 0; }
 
+	/* SYSTEM FONTS ONLY FOR ZERO NETWORK OVERHEAD */
 	body {
-		font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+		font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 		background-color: var(--bg-color);
 		color: var(--text-color);
-		line-height: 1.5;
-		font-size: 16px;
+		line-height: 1.6;
+		font-size: 18px; /* Large text for readability */
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.vzla-stripe {
+		height: 6px;
+		width: 100%;
+		background: linear-gradient(to right, #FFCC00 33.33%, #00247D 33.33%, #00247D 66.66%, #CF142B 66.66%);
 	}
 
 	.container {
 		width: 100%;
-		max-width: 800px;
+		max-width: 1200px; /* Use more screen space on desktop */
 		margin: 0 auto;
-		padding: 12px;
+		padding: 20px;
 	}
 
 	/* HEADER & NAV */
 	.main-header {
-		background-color: #111;
-		color: #fff;
-		padding: 10px 0;
+		background-color: #ffffff;
+		border-bottom: 2px solid var(--border-color);
 	}
 	.main-header .container {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 10px;
+		gap: 15px;
+		padding: 15px 20px;
 	}
-	.logo { color: #fff; text-decoration: none; font-size: 1.2rem; }
-	.logo strong { color: var(--primary); }
-	nav a { color: #ccc; text-decoration: none; margin-left: 15px; font-size: 0.95rem; font-weight: 500; }
-	nav a:hover { color: #fff; }
-
-	/* FORMULARIOS NATIVOS (ACCESIBLES Y ULTRA LIGEROS) */
-	form {
-		background: var(--gray-light);
-		padding: 16px;
-		border-radius: 4px;
-		border: 1px solid var(--border-color);
-		margin-top: 20px;
+	.logo { 
+		color: var(--text-color); 
+		text-decoration: none; 
+		font-size: 1.5rem; 
+		letter-spacing: -0.5px;
 	}
-	.form-group { margin-bottom: 14px; }
-	label { display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.9rem; }
-	input[type="text"], input[type="tel"], select, textarea {
-		width: 100%;
-		padding: 10px;
-		border: 1px solid var(--border-color);
-		border-radius: 4px;
-		font-family: inherit;
-		font-size: 1rem;
-	}
-	textarea { resize: vertical; min-height: 80px; }
+	.logo strong { color: var(--primary-blue); }
 	
-	button[type="submit"], .btn {
-		background-color: var(--primary);
-		color: white;
+	nav { display: flex; gap: 15px; flex-wrap: wrap; }
+	nav a { 
+		color: #555; 
+		text-decoration: none; 
+		font-size: 1rem; 
+		font-weight: 500;
+	}
+	nav a:hover, nav a:active { color: var(--primary-blue); text-decoration: underline; }
+
+	main { flex: 1; }
+
+	/* HIGH CONTRAST CARDS & FORMS */
+	.card {
+		background: #ffffff;
+		border: 2px solid var(--border-color);
+		padding: 24px;
+		margin-bottom: 20px;
+		border-radius: 8px;
+		text-decoration: none;
+		color: inherit;
+		display: block;
+		transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+	}
+
+	.card:active, .card:hover {
+		border-color: var(--primary-blue);
+		background-color: #f8fbff;
+		transform: translateY(-2px);
+	}
+
+	/* Botones Modernos y Optimizados */
+	button, .btn {
+		background-color: var(--primary-blue);
+		color: #ffffff;
 		border: none;
-		padding: 12px 20px;
-		font-size: 1rem;
-		font-weight: bold;
-		border-radius: 4px;
+		padding: 14px 24px;
+		font-size: 1.05rem;
+		font-weight: 600;
+		border-radius: 6px;
 		cursor: pointer;
 		display: inline-block;
 		text-align: center;
 		text-decoration: none;
-		width: 100%;
+		transition: background-color 0.2s ease, box-shadow 0.2s ease;
+		box-shadow: 0 2px 4px rgba(0, 91, 181, 0.2);
 	}
-	button[type="submit"]:hover, .btn:hover { background-color: var(--primary-hover); }
-
+	button:hover, .btn:hover {
+		background-color: var(--primary-blue-hover);
+		box-shadow: 0 4px 8px rgba(0, 91, 181, 0.3);
+	}
+	button:active, .btn:active {
+		transform: translateY(1px);
+		box-shadow: none;
+	}
+	
 	.btn-secondary {
-		background-color: var(--accent);
+		background-color: #ffffff;
+		color: var(--primary-blue);
+		border: 2px solid var(--primary-blue);
+		box-shadow: none;
 	}
 	.btn-secondary:hover {
-		background-color: #0b3c8a;
+		background-color: #f0f7ff;
+		box-shadow: none;
 	}
 
-	/* UTILIDADES */
-	.text-center { text-align: center; }
-	.card {
-		border: 1px solid var(--border-color);
+	/* Formularios */
+	.form-group { margin-bottom: 18px; }
+	label { display: block; font-weight: 600; margin-bottom: 6px; color: #333; }
+	input[type="text"], input[type="tel"], select, textarea {
+		width: 100%;
 		padding: 12px;
-		margin-bottom: 12px;
-		border-radius: 4px;
-		background: #fff;
+		border: 2px solid var(--border-color);
+		border-radius: 6px;
+		font-family: inherit;
+		font-size: 1rem;
+		transition: border-color 0.2s ease;
 	}
-	.badge {
-		display: inline-block;
-		padding: 2px 6px;
-		font-size: 0.8rem;
-		font-weight: bold;
-		border-radius: 3px;
-		text-transform: uppercase;
+	input[type="text"]:focus, input[type="tel"]:focus, select:focus, textarea:focus {
+		outline: none;
+		border-color: var(--primary-blue);
 	}
-	.badge-danger { background: #ffcdd2; color: #b71c1c; }
-	.badge-success { background: #c8e6c9; color: #1b5e20; }
-	.badge-warning { background: #ffecb3; color: #f57f17; }
+	textarea { resize: vertical; min-height: 100px; }
+	
+	/* Detalles y Summary */
+	details {
+		background: #ffffff;
+		border: 1px solid var(--border-color);
+		border-radius: 8px;
+		padding: 16px;
+	}
+	summary {
+		list-style: none;
+		cursor: pointer;
+	}
+	summary::-webkit-details-marker {
+		display: none;
+	}
 
-	footer { margin-top: 40px; padding: 20px 0; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: #666; }
+	h1, h2, h3 { line-height: 1.2; color: #000; margin-bottom: 12px; }
+
+	p { margin-bottom: 16px; color: #333; }
+
+	footer { 
+		margin-top: auto; 
+		padding: 30px 0; 
+		background: var(--bg-gray);
+		border-top: 1px solid var(--border-color); 
+		font-size: 0.9rem; 
+		color: #666; 
+	}
+	.text-center { text-align: center; }
+
+	@media (max-width: 480px) {
+		.main-header .container { flex-direction: column; text-align: center; }
+		nav { width: 100%; justify-content: center; }
+	}
 </style>
