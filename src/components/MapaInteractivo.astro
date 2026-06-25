@@ -1,0 +1,182 @@
+---
+// src/components/MapaInteractivo.astro
+interface MarkerItem {
+  id: string | number;
+  latitud: number | null;
+  longitud: number | null;
+  titulo: string;
+  subtitulo?: string;
+  descripcion?: string;
+  badge?: string;
+  badgeType?: 'success' | 'danger' | 'warning' | 'neutral';
+  contacto: string;
+  imagen_url?: string | null;
+}
+
+interface Props {
+  items: MarkerItem[];
+  mapId: string;
+}
+
+const { items, mapId } = Astro.props;
+
+// Filter out items without coordinates
+const validItems = items.filter(item => item.latitud !== null && item.longitud !== null);
+---
+
+<div class="map-wrapper" data-map-id={mapId} data-items={JSON.stringify(validItems)}>
+  <button type="button" class="btn btn-secondary btn-map-toggle" id={`toggle-btn-${mapId}`}>
+    🗺️ Ver en Mapa ({validItems.length} ubicaciones)
+  </button>
+
+  <div class="map-container-wrapper" id={`wrapper-${mapId}`} style="display: none; margin-top: 15px; margin-bottom: 25px;">
+    <div id={mapId} class="leaflet-map-element" style="height: 400px; width: 100%; border: 2px solid var(--border-color); border-radius: 8px; background: #eaeaea;">
+      <div class="map-placeholder-text" style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 0.95rem; color: #555;">
+        Cargando mapa...
+      </div>
+    </div>
+    <small style="color: #666; display: block; margin-top: 6px;">
+      * El mapa utiliza OpenStreetMap para cuidar tus datos móviles. Los marcadores muestran reportes activos.
+    </small>
+  </div>
+</div>
+
+<script is:inline define:vars={{ mapId }}>
+  (function() {
+    const wrapper = document.getElementById(`wrapper-${mapId}`);
+    const button = document.getElementById(`toggle-btn-${mapId}`);
+    const mapElement = document.getElementById(mapId);
+    let mapInitialized = false;
+    let mapInstance = null;
+
+    if (!button || !wrapper) return;
+
+    button.addEventListener('click', () => {
+      if (wrapper.style.display === 'none') {
+        wrapper.style.display = 'block';
+        button.innerHTML = '📋 Vista de Lista';
+        button.classList.remove('btn-secondary');
+        button.classList.add('btn-primary-blue');
+        
+        loadLeaflet(() => {
+          initializeMap();
+        });
+      } else {
+        wrapper.style.display = 'none';
+        button.innerHTML = `🗺️ Ver en Mapa (${JSON.parse(document.querySelector(`[data-map-id="${mapId}"]`).getAttribute('data-items')).length} ubicaciones)`;
+        button.classList.add('btn-secondary');
+        button.classList.remove('btn-primary-blue');
+      }
+    });
+
+    function loadLeaflet(callback) {
+      if (window.L) {
+        callback();
+        return;
+      }
+
+      // Cargar CSS
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+
+      // Cargar JS
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.onload = callback;
+      document.head.appendChild(script);
+    }
+
+    function initializeMap() {
+      if (mapInitialized) {
+        if (mapInstance) {
+          setTimeout(() => {
+            mapInstance.invalidateSize();
+          }, 100);
+        }
+        return;
+      }
+
+      const container = document.querySelector(`[data-map-id="${mapId}"]`);
+      if (!container) return;
+
+      const items = JSON.parse(container.getAttribute('data-items') || '[]');
+      
+      mapElement.innerHTML = '';
+
+      const defaultCenter = [8.0, -66.0];
+      const defaultZoom = 6;
+
+      mapInstance = window.L.map(mapId).setView(defaultCenter, defaultZoom);
+      mapInitialized = true;
+
+      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap',
+        maxZoom: 18
+      }).addTo(mapInstance);
+
+      if (items.length === 0) {
+        return;
+      }
+
+      const markersGroup = [];
+
+      items.forEach(item => {
+        if (item.latitud === null || item.longitud === null) return;
+        
+        let popupHTML = `<div style="font-family: system-ui; font-size: 0.9rem; line-height: 1.4;">`;
+        if (item.badge) {
+          const bg = item.badgeType === 'success' ? '#dcfce3' : item.badgeType === 'danger' ? '#fee2e2' : '#f1f5f9';
+          const color = item.badgeType === 'success' ? '#166534' : item.badgeType === 'danger' ? '#b91c1c' : '#475569';
+          popupHTML += `<span style="background: ${bg}; color: ${color}; font-size: 0.75rem; font-weight: bold; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 5px; text-transform: uppercase;">${item.badge}</span>`;
+        }
+        popupHTML += `<h4 style="margin: 0 0 5px 0; font-size: 1rem; color: #000;">${escapeHTML(item.titulo)}</h4>`;
+        if (item.subtitulo) {
+          popupHTML += `<p style="margin: 0 0 5px 0; color: #555; font-size: 0.85rem;"><strong>📍</strong> ${escapeHTML(item.subtitulo)}</p>`;
+        }
+        if (item.descripcion) {
+          popupHTML += `<p style="margin: 0 0 8px 0; font-size: 0.85rem; color: #333; background: #f5f5f5; padding: 5px; border-radius: 4px; max-height: 80px; overflow-y: auto;">${escapeHTML(item.descripcion)}</p>`;
+        }
+        if (item.imagen_url) {
+          const optimizada = item.imagen_url.includes('supabase.co') ? `${item.imagen_url}?width=120&quality=60` : item.imagen_url;
+          popupHTML += `<div style="margin-bottom: 8px;"><img src="${optimizada}" alt="Preview" style="max-width: 100%; max-height: 80px; border-radius: 4px; object-fit: cover;" /></div>`;
+        }
+        popupHTML += `<p style="margin: 0; font-size: 0.85rem;"><strong>Contacto:</strong> ${escapeHTML(item.contacto)}</p>`;
+        popupHTML += `</div>`;
+
+        const marker = window.L.marker([item.latitud, item.longitud])
+          .bindPopup(popupHTML)
+          .addTo(mapInstance);
+          
+        markersGroup.push(marker);
+      });
+
+      if (markersGroup.length > 0) {
+        const group = new window.L.featureGroup(markersGroup);
+        mapInstance.fitBounds(group.getBounds().pad(0.1));
+      }
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  })();
+</script>
+
+<style>
+  .btn-primary-blue {
+    background-color: var(--primary-blue);
+    color: #ffffff;
+    border: 2px solid var(--primary-blue);
+  }
+  .btn-primary-blue:hover {
+    background-color: var(--primary-blue-hover);
+  }
+</style>

@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { supabase, optimizarImagen } from '../lib/supabase';
+import MapaInteractivo from '../components/MapaInteractivo.astro';
 
 let mensaje = '';
 let mensajeTipo = ''; // 'success' o 'error'
@@ -19,6 +20,10 @@ if (Astro.request.method === 'POST') {
     const vestimenta_rasgos = data.get('vestimenta_rasgos')?.toString().trim() || '';
     const contacto_reportante = data.get('contacto_reportante')?.toString().trim() || '';
     const estado_vital = data.get('estado_vital')?.toString() || 'DESAPARECIDO';
+    
+    const latitud = data.get('latitud') ? parseFloat(data.get('latitud').toString()) : null;
+    const longitud = data.get('longitud') ? parseFloat(data.get('longitud').toString()) : null;
+    const imagen_url = data.get('imagen_url')?.toString().trim() || null;
 
     if (!nombre_completo || !estado || !ciudad_municipio || !contacto_reportante) {
       throw new Error("Faltan campos obligatorios");
@@ -34,7 +39,10 @@ if (Astro.request.method === 'POST') {
         direccion_referencia, 
         vestimenta_rasgos, 
         contacto_reportante, 
-        estado_vital 
+        estado_vital,
+        latitud: isNaN(latitud as any) ? null : latitud,
+        longitud: isNaN(longitud as any) ? null : longitud,
+        imagen_url
       }
     ]);
 
@@ -68,6 +76,20 @@ if (buscar) {
 }
 
 const { data: personas, error: fetchError } = await query;
+
+// Preparar los marcadores para el mapa
+const markerItems = (personas || []).map(p => ({
+  id: p.id,
+  latitud: p.latitud ? parseFloat(p.latitud.toString()) : null,
+  longitud: p.longitud ? parseFloat(p.longitud.toString()) : null,
+  titulo: p.nombre_completo,
+  subtitulo: `${p.ciudad_municipio}, ${p.estado}`,
+  descripcion: p.vestimenta_rasgos || '',
+  badge: p.tipo_reporte,
+  badgeType: p.tipo_reporte === 'BUSCO' ? 'danger' as const : 'success' as const,
+  contacto: p.contacto_reportante,
+  imagen_url: p.imagen_url
+}));
 ---
 
 <Layout title="Personas Desaparecidas">
@@ -137,6 +159,27 @@ const { data: personas, error: fetchError } = await query;
 				<small style="color: #666;">No lo publiques si crees que es riesgoso, usa Telegram si es posible.</small>
 			</div>
 
+			<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;" class="form-group">
+				<div style="flex: 1; min-width: 200px;">
+					<label>Coordenadas GPS (Opcional para Mapa)</label>
+					<div style="display: flex; gap: 8px;">
+						<input type="text" id="input-lat" name="latitud" placeholder="Latitud (Ej: 10.496)" readonly style="background: var(--bg-gray); cursor: not-allowed;" />
+						<input type="text" id="input-lon" name="longitud" placeholder="Longitud (Ej: -66.879)" readonly style="background: var(--bg-gray); cursor: not-allowed;" />
+					</div>
+				</div>
+				<button type="button" id="btn-gps" class="btn btn-secondary" style="height: 48px; padding: 0 15px; font-size: 0.9rem; white-space: nowrap;">
+					📍 Capturar GPS
+				</button>
+			</div>
+			<div id="gps-status" style="font-size: 0.85rem; color: #555; margin-top: -10px; margin-bottom: 15px;"></div>
+
+			<div class="form-group">
+				<label>Foto de la Persona (Opcional - Se comprime automáticamente)</label>
+				<input type="file" id="image-file" accept="image/*" style="border: 2px solid var(--border-color); padding: 8px; width: 100%; border-radius: 6px; font-size: 0.95rem;" />
+				<input type="hidden" name="imagen_url" id="input-imagen-url" />
+				<div id="upload-status" style="font-size: 0.85rem; color: #555; margin-top: 5px;"></div>
+			</div>
+
 			<button type="submit">Enviar Reporte</button>
 		</form>
 	</details>
@@ -149,6 +192,10 @@ const { data: personas, error: fetchError } = await query;
 		<button type="submit" style="width: auto;">Buscar</button>
 		{buscar && <a href="/personas" class="btn btn-secondary" style="width: auto;">Limpiar</a>}
 	</form>
+
+	<div style="margin-bottom: 25px;">
+		<MapaInteractivo items={markerItems} mapId="mapa-personas" />
+	</div>
 
 	<div class="lista">
 		{fetchError && <p>Error al cargar los datos: {fetchError.message}</p>}
@@ -165,6 +212,12 @@ const { data: personas, error: fetchError } = await query;
 						{persona.tipo_reporte}
 					</span>
 				</div>
+				
+				{persona.imagen_url && (
+					<div style="margin-bottom: 12px; max-width: 100%; display: flex; justify-content: flex-start;">
+						<img src={optimizarImagen(persona.imagen_url)} alt={`Foto de ${persona.nombre_completo}`} style="max-width: 250px; max-height: 180px; border-radius: 6px; object-fit: cover; border: 2px solid var(--border-color);" />
+					</div>
+				)}
 				
 				<p style="margin-bottom: 5px; font-size: 0.95rem;">
 					<strong>📍 Ubicación:</strong> {persona.ciudad_municipio}, {persona.estado}
@@ -191,4 +244,80 @@ const { data: personas, error: fetchError } = await query;
 			</div>
 		))}
 	</div>
+
+	<!-- Credenciales de Supabase en un contenedor oculto para uso del script del cliente -->
+	<div id="credentials-holder" data-url={import.meta.env.SUPABASE_URL} data-key={import.meta.env.SUPABASE_ANON_KEY} style="display: none;"></div>
+
+	<script>
+	  import { compressAndUploadImage } from '../lib/clientStorage';
+
+	  const holder = document.getElementById('credentials-holder');
+	  const supabaseUrl = holder?.getAttribute('data-url') || '';
+	  const supabaseAnonKey = holder?.getAttribute('data-key') || '';
+
+	  // Geolocalización
+	  const btnGps = document.getElementById('btn-gps');
+	  const gpsStatus = document.getElementById('gps-status');
+	  const inputLat = document.getElementById('input-lat') as HTMLInputElement;
+	  const inputLon = document.getElementById('input-lon') as HTMLInputElement;
+
+	  if (btnGps && gpsStatus && inputLat && inputLon) {
+	    btnGps.addEventListener('click', () => {
+	      gpsStatus.innerText = '⏳ Obteniendo GPS...';
+	      if (!navigator.geolocation) {
+	        gpsStatus.innerText = '❌ La geolocalización no está soportada en este navegador';
+	        return;
+	      }
+	      navigator.geolocation.getCurrentPosition(
+	        (position) => {
+	          const lat = position.coords.latitude;
+	          const lon = position.coords.longitude;
+	          inputLat.value = lat.toFixed(6);
+	          inputLon.value = lon.toFixed(6);
+	          gpsStatus.innerHTML = `✅ Ubicación detectada con éxito.`;
+	          gpsStatus.style.color = '#166534';
+	        },
+	        (error) => {
+	          gpsStatus.innerText = `❌ Error: ${error.message}. Por favor actívalo manualmente.`;
+	          gpsStatus.style.color = '#b91c1c';
+	        },
+	        { enableHighAccuracy: true, timeout: 8000 }
+	      );
+	    });
+	  }
+
+	  // Compresión y carga de imágenes
+	  const imageFile = document.getElementById('image-file') as HTMLInputElement;
+	  const inputImagenUrl = document.getElementById('input-imagen-url') as HTMLInputElement;
+	  const uploadStatus = document.getElementById('upload-status');
+	  const submitBtn = document.querySelector('form button[type="submit"]') as HTMLButtonElement;
+
+	  if (imageFile && inputImagenUrl && uploadStatus && submitBtn) {
+	    imageFile.addEventListener('change', async () => {
+	      const file = imageFile.files?.[0];
+	      if (!file) return;
+
+	      try {
+	        uploadStatus.innerText = '⏳ Optimizando foto en tu dispositivo...';
+	        uploadStatus.style.color = '#555';
+	        submitBtn.disabled = true;
+	        submitBtn.style.opacity = '0.5';
+
+	        const publicUrl = await compressAndUploadImage(file, supabaseUrl, supabaseAnonKey);
+	        
+	        inputImagenUrl.value = publicUrl;
+	        uploadStatus.innerText = '✅ Foto subida y optimizada (~100KB) con éxito.';
+	        uploadStatus.style.color = '#166534';
+	      } catch (err: any) {
+	        console.error(err);
+	        uploadStatus.innerText = `❌ Error al subir la imagen: ${err.message || 'Error desconocido'}`;
+	        uploadStatus.style.color = '#b91c1c';
+	        imageFile.value = '';
+	      } finally {
+	        submitBtn.disabled = false;
+	        submitBtn.style.opacity = '1';
+	      }
+	    });
+	  }
+	</script>
 </Layout>

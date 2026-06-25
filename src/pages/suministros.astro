@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { supabase } from '../lib/supabase';
+import { supabase, optimizarImagen } from '../lib/supabase';
+import MapaInteractivo from '../components/MapaInteractivo.astro';
 
 let mensaje = '';
 let mensajeTipo = ''; // 'success' o 'error'
@@ -21,6 +22,10 @@ if (Astro.request.method === 'POST') {
     const ciudad_municipio = data.get('ciudad_municipio')?.toString().trim() || '';
     const direccion_referencia = data.get('direccion_referencia')?.toString().trim() || '';
     const contacto = data.get('contacto')?.toString().trim() || '';
+    
+    const latitud = data.get('latitud') ? parseFloat(data.get('latitud').toString()) : null;
+    const longitud = data.get('longitud') ? parseFloat(data.get('longitud').toString()) : null;
+    const imagen_url = data.get('imagen_url')?.toString().trim() || null;
 
     if (!titulo_item || !estado || !ciudad_municipio || !contacto) {
       throw new Error("Faltan campos obligatorios");
@@ -42,7 +47,10 @@ if (Astro.request.method === 'POST') {
         estado,
         ciudad_municipio,
         direccion_referencia,
-        contacto
+        contacto,
+        latitud: isNaN(latitud as any) ? null : latitud,
+        longitud: isNaN(longitud as any) ? null : longitud,
+        imagen_url
       }
     ]);
 
@@ -80,6 +88,20 @@ if (filtroTipo) {
 }
 
 const { data: suministros, error: fetchError } = await query;
+
+// Preparar los marcadores para el mapa
+const markerItems = (suministros || []).map(item => ({
+  id: item.id,
+  latitud: item.latitud ? parseFloat(item.latitud.toString()) : null,
+  longitud: item.longitud ? parseFloat(item.longitud.toString()) : null,
+  titulo: item.titulo_item,
+  subtitulo: `${item.ciudad_municipio}, ${item.estado}`,
+  descripcion: `[${item.categoria}] ${item.descripcion || ''} - Cantidad: ${item.cantidad_existencias} ${item.unidad_medida}`,
+  badge: item.tipo_anuncio === 'TENGO' ? 'TENGO' : 'NECESITO',
+  badgeType: item.tipo_anuncio === 'TENGO' ? 'success' as const : 'danger' as const,
+  contacto: item.contacto,
+  imagen_url: item.imagen_url
+}));
 ---
 
 <Layout title="Suministros y Alimentos">
@@ -166,6 +188,27 @@ const { data: suministros, error: fetchError } = await query;
 				<small style="color: #666;">Indica la mejor forma para que se comuniquen contigo directamente.</small>
 			</div>
 
+			<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;" class="form-group">
+				<div style="flex: 1; min-width: 200px;">
+					<label>Coordenadas GPS (Opcional para Mapa)</label>
+					<div style="display: flex; gap: 8px;">
+						<input type="text" id="input-lat" name="latitud" placeholder="Latitud (Ej: 10.496)" readonly style="background: var(--bg-gray); cursor: not-allowed;" />
+						<input type="text" id="input-lon" name="longitud" placeholder="Longitud (Ej: -66.879)" readonly style="background: var(--bg-gray); cursor: not-allowed;" />
+					</div>
+				</div>
+				<button type="button" id="btn-gps" class="btn btn-secondary" style="height: 48px; padding: 0 15px; font-size: 0.9rem; white-space: nowrap;">
+					📍 Capturar GPS
+				</button>
+			</div>
+			<div id="gps-status" style="font-size: 0.85rem; color: #555; margin-top: -10px; margin-bottom: 15px;"></div>
+
+			<div class="form-group">
+				<label>Foto del Recurso/Lugar (Opcional - Se comprime automáticamente)</label>
+				<input type="file" id="image-file" accept="image/*" style="border: 2px solid var(--border-color); padding: 8px; width: 100%; border-radius: 6px; font-size: 0.95rem;" />
+				<input type="hidden" name="imagen_url" id="input-imagen-url" />
+				<div id="upload-status" style="font-size: 0.85rem; color: #555; margin-top: 5px;"></div>
+			</div>
+
 			<button type="submit">Publicar Suministro</button>
 		</form>
 	</details>
@@ -188,6 +231,10 @@ const { data: suministros, error: fetchError } = await query;
 		</div>
 	</form>
 
+	<div style="margin-bottom: 25px;">
+		<MapaInteractivo items={markerItems} mapId="mapa-suministros" />
+	</div>
+
 	<div class="lista">
 		{fetchError && <p>Error al cargar los datos: {fetchError.message}</p>}
 		
@@ -206,6 +253,12 @@ const { data: suministros, error: fetchError } = await query;
 						</span>
 					</div>
 				</div>
+
+				{item.imagen_url && (
+					<div style="margin-bottom: 12px; max-width: 100%; display: flex; justify-content: flex-start;">
+						<img src={optimizarImagen(item.imagen_url)} alt={`Foto de ${item.titulo_item}`} style="max-width: 250px; max-height: 180px; border-radius: 6px; object-fit: cover; border: 2px solid var(--border-color);" />
+					</div>
+				)}
 
 				<p style="margin-bottom: 5px; font-size: 0.95rem;">
 					<strong>Existencias:</strong> {item.cantidad_existencias} {item.unidad_medida}
@@ -232,4 +285,80 @@ const { data: suministros, error: fetchError } = await query;
 			</div>
 		))}
 	</div>
+
+	<!-- Credenciales de Supabase en un contenedor oculto para uso del script del cliente -->
+	<div id="credentials-holder" data-url={import.meta.env.SUPABASE_URL} data-key={import.meta.env.SUPABASE_ANON_KEY} style="display: none;"></div>
+
+	<script>
+	  import { compressAndUploadImage } from '../lib/clientStorage';
+
+	  const holder = document.getElementById('credentials-holder');
+	  const supabaseUrl = holder?.getAttribute('data-url') || '';
+	  const supabaseAnonKey = holder?.getAttribute('data-key') || '';
+
+	  // Geolocalización
+	  const btnGps = document.getElementById('btn-gps');
+	  const gpsStatus = document.getElementById('gps-status');
+	  const inputLat = document.getElementById('input-lat') as HTMLInputElement;
+	  const inputLon = document.getElementById('input-lon') as HTMLInputElement;
+
+	  if (btnGps && gpsStatus && inputLat && inputLon) {
+	    btnGps.addEventListener('click', () => {
+	      gpsStatus.innerText = '⏳ Obteniendo GPS...';
+	      if (!navigator.geolocation) {
+	        gpsStatus.innerText = '❌ La geolocalización no está soportada en este navegador';
+	        return;
+	      }
+	      navigator.geolocation.getCurrentPosition(
+	        (position) => {
+	          const lat = position.coords.latitude;
+	          const lon = position.coords.longitude;
+	          inputLat.value = lat.toFixed(6);
+	          inputLon.value = lon.toFixed(6);
+	          gpsStatus.innerHTML = `✅ Ubicación detectada con éxito.`;
+	          gpsStatus.style.color = '#166534';
+	        },
+	        (error) => {
+	          gpsStatus.innerText = `❌ Error: ${error.message}. Por favor actívalo manualmente.`;
+	          gpsStatus.style.color = '#b91c1c';
+	        },
+	        { enableHighAccuracy: true, timeout: 8000 }
+	      );
+	    });
+	  }
+
+	  // Compresión y carga de imágenes
+	  const imageFile = document.getElementById('image-file') as HTMLInputElement;
+	  const inputImagenUrl = document.getElementById('input-imagen-url') as HTMLInputElement;
+	  const uploadStatus = document.getElementById('upload-status');
+	  const submitBtn = document.querySelector('form button[type="submit"]') as HTMLButtonElement;
+
+	  if (imageFile && inputImagenUrl && uploadStatus && submitBtn) {
+	    imageFile.addEventListener('change', async () => {
+	      const file = imageFile.files?.[0];
+	      if (!file) return;
+
+	      try {
+	        uploadStatus.innerText = '⏳ Optimizando foto en tu dispositivo...';
+	        uploadStatus.style.color = '#555';
+	        submitBtn.disabled = true;
+	        submitBtn.style.opacity = '0.5';
+
+	        const publicUrl = await compressAndUploadImage(file, supabaseUrl, supabaseAnonKey);
+	        
+	        inputImagenUrl.value = publicUrl;
+	        uploadStatus.innerText = '✅ Foto subida y optimizada (~100KB) con éxito.';
+	        uploadStatus.style.color = '#166534';
+	      } catch (err: any) {
+	        console.error(err);
+	        uploadStatus.innerText = `❌ Error al subir la imagen: ${err.message || 'Error desconocido'}`;
+	        uploadStatus.style.color = '#b91c1c';
+	        imageFile.value = '';
+	      } finally {
+	        submitBtn.disabled = false;
+	        submitBtn.style.opacity = '1';
+	      }
+	    });
+	  }
+	</script>
 </Layout>
