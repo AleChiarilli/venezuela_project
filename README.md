@@ -8,17 +8,20 @@ Nace con el objetivo de resolver el problema de la información efímera y desor
 
 ---
 
-## 🎯 Características Principales
+## 🎯 Características Principales y Optimización Extrema (EDGE/GPRS)
 
-- **Super Ligera:** No utiliza frameworks pesados de JavaScript en el cliente por defecto (arquitectura Zero-JS con Astro), lo que garantiza que cargue instantáneamente.
-- **Ahorro de Datos:** Las imágenes subidas por los usuarios se comprimen automáticamente en el dispositivo antes de subirse (~100KB) y por defecto se muestran ocultas tras un botón para ahorrar datos móviles.
-- **Filtros Exactos:** Utiliza selectores predefinidos de los 335 municipios de Venezuela para garantizar la integridad de los datos.
-- **Mapas Interactivos:** Cada publicación puede geo-etiquetarse. Se muestran en un mapa (con Leaflet/OpenStreetMap) para que los usuarios puedan encontrar ayuda cerca de su zona.
-- **Funciones Dinámicas:** Formularios inteligentes que cambian dependiendo de si la persona está solicitando ayuda, ofreciendo ayuda, o reportando un lugar público.
-- **Categorías Clave:** 
-  - 🫂 Búsqueda de Personas
-  - 🍞 Donaciones y Suministros
-  - 🏠 Refugios y Techos Seguros
+- **Arquitectura Zero-JS:** Astro envía por defecto **0 bytes de JavaScript** al navegador. El cliente solo descarga HTML puro, ahorrando cientos de kilobytes y logrando renderizado instantáneo.
+- **Fuentes Nativas (System Fonts):** Evitamos cargar fuentes externas (como Google Fonts). Se utilizan las tipografías nativas del dispositivo (`system-ui`), ahorrando la descarga de pesados archivos tipográficos.
+- **Server-Side Rendering (SSR) Eficiente:** Las consultas a la base de datos (Supabase) ocurren en el servidor. El teléfono del usuario no realiza llamadas a APIs externas en el cliente (que fallarían en redes con alta latencia y pérdida de paquetes).
+- **Ahorro de Datos en Imágenes:** Las imágenes subidas por los usuarios se comprimen de forma agresiva directamente en el dispositivo antes de subirse (~100KB). Además, por defecto están ocultas tras un botón interactivo para que no consuman datos móviles a menos que el usuario lo desee.
+- **PWA (Progressive Web App):** Implementación de Service Workers para caché agresivo. Tras la primera carga, la estructura de la aplicación y recursos estáticos se almacenan offline, permitiendo la carga ultrarrápida (y funcionamiento básico sin conexión) en visitas posteriores.
+- **Filtros Exactos:** Selectores predefinidos de los 335 municipios para asegurar consistencia de datos sin necesidad de búsquedas complejas en tiempo real.
+- **Mapas Ligeros:** Se usa Leaflet/OpenStreetMap cargado asíncronamente solo cuando es necesario, evitando cuotas de API y sobrecarga en el renderizado inicial.
+
+### 📌 Categorías Clave:
+- 🫂 Búsqueda de Personas
+- 🍞 Donaciones y Suministros
+- 🏠 Refugios y Techos Seguros
 
 ---
 
@@ -53,7 +56,7 @@ SUPABASE_URL=tu_url_de_supabase
 SUPABASE_ANON_KEY=tu_anon_key_de_supabase
 ```
 
-*(Si necesitas acceso a una base de datos de desarrollo, ponte en contacto con @AleChiarilli o crea un proyecto gratuito en Supabase con las siguientes tablas: `personas_desaparecidas`, `ayuda_suministros`, `refugios_temporales`).*
+*(Si necesitas acceso a una base de datos de desarrollo, ponte en contacto escribiendo a hola@theeclatmethod.com o crea un proyecto gratuito en Supabase con las siguientes tablas: `personas_desaparecidas`, `ayuda_suministros`, `refugios_temporales`).*
 
 ### 4. Corre el servidor de desarrollo
 ```bash
