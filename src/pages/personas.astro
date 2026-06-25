@@ -21,8 +21,10 @@ if (Astro.request.method === 'POST') {
     const contacto_reportante = data.get('contacto_reportante')?.toString().trim() || '';
     const estado_vital = data.get('estado_vital')?.toString() || 'DESAPARECIDO';
     
-    const latitud = data.get('latitud') ? parseFloat(data.get('latitud').toString()) : null;
-    const longitud = data.get('longitud') ? parseFloat(data.get('longitud').toString()) : null;
+    const latStr = data.get('latitud')?.toString();
+    const latitud = latStr ? parseFloat(latStr) : null;
+    const lonStr = data.get('longitud')?.toString();
+    const longitud = lonStr ? parseFloat(lonStr) : null;
     const imagen_url = data.get('imagen_url')?.toString().trim() || null;
 
     if (!nombre_completo || !estado || !ciudad_municipio || !contacto_reportante) {

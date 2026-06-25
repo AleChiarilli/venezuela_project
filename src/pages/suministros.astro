@@ -23,8 +23,10 @@ if (Astro.request.method === 'POST') {
     const direccion_referencia = data.get('direccion_referencia')?.toString().trim() || '';
     const contacto = data.get('contacto')?.toString().trim() || '';
     
-    const latitud = data.get('latitud') ? parseFloat(data.get('latitud').toString()) : null;
-    const longitud = data.get('longitud') ? parseFloat(data.get('longitud').toString()) : null;
+    const latStr = data.get('latitud')?.toString();
+    const latitud = latStr ? parseFloat(latStr) : null;
+    const lonStr = data.get('longitud')?.toString();
+    const longitud = lonStr ? parseFloat(lonStr) : null;
     const imagen_url = data.get('imagen_url')?.toString().trim() || null;
 
     if (!titulo_item || !estado || !ciudad_municipio || !contacto) {
