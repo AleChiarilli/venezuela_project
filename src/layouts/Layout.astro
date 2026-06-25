@@ -16,7 +16,7 @@ const { title } = Astro.props;
 		<title>{title} | Apoyo Vzla</title>
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="manifest" href="/manifest.webmanifest" />
-		<script src="/registerSW.js"></script>
+		<script is:inline src="/registerSW.js"></script>
 	</head>
 	<body>
 		<div class="vzla-stripe"></div>
@@ -55,7 +55,7 @@ const { title } = Astro.props;
 
 				<p style="font-size: 0.85rem;">
 					Creado para sumar. Si tienes ideas de mejora, comentarios o quieres colaborar con el desarrollo, 
-					puedes contactarme a: <a href="mailto:hola@theeclatmethod.com" style="color: var(--primary-blue); text-decoration: underline; font-weight: bold;">hola@theeclatmethod.com</a> o aportar directamente en el <a href="https://github.com/AleChiarilli/venezuela_project" target="_blank" style="color: var(--primary-blue); text-decoration: underline;">repositorio de GitHub</a>.
+					puedes contactarme a: <a href="mailto:hola@theeclatmethod.com" style="color: var(--primary-blue); text-decoration: underline; font-weight: bold;">hola@theeclatmethod.com</a>
 				</p>
 			</div>
 		</footer>
