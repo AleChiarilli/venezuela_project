@@ -1,0 +1,235 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { supabase } from '../lib/supabase';
+
+let mensaje = '';
+let mensajeTipo = ''; // 'success' o 'error'
+
+// Procesar el formulario si es POST (Zero-JS)
+if (Astro.request.method === 'POST') {
+  try {
+    const data = await Astro.request.formData();
+    
+    // Extrayendo y limpiando datos
+    const tipo_anuncio = data.get('tipo_anuncio')?.toString() || 'NECESITO';
+    const categoria = data.get('categoria')?.toString() || 'OTROS';
+    const titulo_item = data.get('titulo_item')?.toString().trim() || '';
+    const descripcion = data.get('descripcion')?.toString().trim() || '';
+    const cantidad_existencias = parseInt(data.get('cantidad_existencias')?.toString() || '1', 10);
+    const unidad_medida = data.get('unidad_medida')?.toString() || 'unidades';
+    const estado = data.get('estado')?.toString().trim() || '';
+    const ciudad_municipio = data.get('ciudad_municipio')?.toString().trim() || '';
+    const direccion_referencia = data.get('direccion_referencia')?.toString().trim() || '';
+    const contacto = data.get('contacto')?.toString().trim() || '';
+
+    if (!titulo_item || !estado || !ciudad_municipio || !contacto) {
+      throw new Error("Faltan campos obligatorios");
+    }
+
+    if (isNaN(cantidad_existencias) || cantidad_existencias < 1) {
+      throw new Error("La cantidad de existencias debe ser al menos 1");
+    }
+
+    // Insertar en Supabase
+    const { error } = await supabase.from('suministros_ayuda').insert([
+      { 
+        tipo_anuncio,
+        categoria,
+        titulo_item,
+        descripcion,
+        cantidad_existencias,
+        unidad_medida,
+        estado,
+        ciudad_municipio,
+        direccion_referencia,
+        contacto
+      }
+    ]);
+
+    if (error) {
+      console.error(error);
+      throw new Error("Error al guardar en la base de datos.");
+    }
+    
+    mensaje = 'Anuncio de suministro guardado con éxito. Aparecerá en la lista a continuación.';
+    mensajeTipo = 'success';
+  } catch (error: any) {
+    mensaje = error.message || 'Hubo un error al procesar el suministro.';
+    mensajeTipo = 'error';
+  }
+}
+
+// Búsqueda simple (si hay query string)
+const url = new URL(Astro.request.url);
+const buscar = url.searchParams.get('q') || '';
+const filtroTipo = url.searchParams.get('tipo') || ''; // 'TENGO' o 'NECESITO'
+
+// Consultar los reportes activos
+let query = supabase
+  .from('suministros_ayuda')
+  .select('*')
+  .eq('resuelto', false)
+  .order('creado_el', { ascending: false });
+
+if (buscar) {
+  query = query.or(`titulo_item.ilike.%${buscar}%,ciudad_municipio.ilike.%${buscar}%,descripcion.ilike.%${buscar}%`);
+}
+
+if (filtroTipo) {
+  query = query.eq('tipo_anuncio', filtroTipo);
+}
+
+const { data: suministros, error: fetchError } = await query;
+---
+
+<Layout title="Suministros y Alimentos">
+	<div style="margin-bottom: 20px;">
+		<a href="/" style="text-decoration: none; color: var(--accent);">← Volver al Inicio</a>
+	</div>
+
+	<h1 style="margin-bottom: 10px;">Suministros y Alimentos</h1>
+	<p style="margin-bottom: 20px; color: #555;">Registra lo que tienes para ofrecer a los afectados o publica lo que necesitas con urgencia. Todos los campos con * son obligatorios.</p>
+
+	{mensaje && (
+		<div class="card" style={`background-color: ${mensajeTipo === 'success' ? '#c8e6c9' : '#ffcdd2'}; border-color: ${mensajeTipo === 'success' ? '#81c784' : '#e57373'};`}>
+			<strong>{mensajeTipo === 'success' ? 'Éxito:' : 'Error:'}</strong> {mensaje}
+		</div>
+	)}
+
+	<details style="margin-bottom: 30px;">
+		<summary class="btn btn-secondary" style="margin-bottom: 15px;">+ Añadir Oferta o Necesidad</summary>
+		<form method="POST">
+			<div class="form-group">
+				<label>¿Qué deseas hacer? *</label>
+				<select name="tipo_anuncio" required>
+					<option value="NECESITO">Necesito / Solicito este recurso</option>
+					<option value="TENGO">Tengo / Ofrezco este recurso</option>
+				</select>
+			</div>
+
+			<div class="form-group">
+				<label>Categoría *</label>
+				<select name="categoria" required>
+					<option value="ALIMENTOS">Alimentos y Comida no perecedera</option>
+					<option value="MEDICINAS">Medicinas y Primeros Auxilios</option>
+					<option value="AGUA">Agua Potable y Líquidos</option>
+					<option value="HIGIENE">Productos de Higiene Personal</option>
+					<option value="OTROS">Otros Recursos</option>
+				</select>
+			</div>
+
+			<div class="form-group">
+				<label>Título del Recurso *</label>
+				<input type="text" name="titulo_item" placeholder="Ej: Harina de maíz, Antibióticos, Botellas de agua de 5L" required />
+			</div>
+
+			<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+				<div class="form-group" style="flex: 2; min-width: 150px;">
+					<label>Cantidad Disponible/Requerida *</label>
+					<input type="number" name="cantidad_existencias" value="1" min="1" step="1" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 1rem;" required />
+				</div>
+				<div class="form-group" style="flex: 1; min-width: 120px;">
+					<label>Unidad *</label>
+					<select name="unidad_medida" required>
+						<option value="unidades">Unidades / Piezas</option>
+						<option value="kilos">Kilogramos (kg)</option>
+						<option value="litros">Litros (L)</option>
+						<option value="paquetes">Paquetes / Bultos</option>
+					</select>
+				</div>
+			</div>
+
+			<div class="form-group">
+				<label>Descripción detallada</label>
+				<textarea name="descripcion" placeholder="Ej: Marca PAN, vencimiento en 6 meses. Necesario para 4 niños en el refugio."></textarea>
+			</div>
+
+			<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+				<div class="form-group" style="flex: 1; min-width: 150px;">
+					<label>Estado *</label>
+					<input type="text" name="estado" placeholder="Ej: Miranda" required />
+				</div>
+				<div class="form-group" style="flex: 1; min-width: 150px;">
+					<label>Ciudad / Municipio *</label>
+					<input type="text" name="ciudad_municipio" placeholder="Ej: Chacao" required />
+				</div>
+			</div>
+
+			<div class="form-group">
+				<label>Dirección exacta o Referencia de ubicación *</label>
+				<input type="text" name="direccion_referencia" placeholder="Ej: Av. Francisco de Miranda, Edif. Roxana, PB" required />
+			</div>
+
+			<div class="form-group">
+				<label>Información de Contacto *</label>
+				<input type="text" name="contacto" placeholder="Ej: Teléfono o Telegram @usuario" required />
+				<small style="color: #666;">Indica la mejor forma para que se comuniquen contigo directamente.</small>
+			</div>
+
+			<button type="submit">Publicar Suministro</button>
+		</form>
+	</details>
+
+	<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;" />
+
+	<h2>Listado de Suministros</h2>
+
+	<!-- Filtros y Búsqueda -->
+	<form method="GET" style="background: none; border: none; padding: 0; margin-top: 10px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+		<div style="display: flex; gap: 10px;">
+			<input type="text" name="q" placeholder="Buscar por recurso, ciudad..." value={buscar} style="flex: 1;" />
+			<button type="submit" style="width: auto;">Buscar</button>
+		</div>
+		<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+			<span style="font-size: 0.9rem; font-weight: bold;">Filtrar por tipo:</span>
+			<a href={`/suministros?q=${buscar}`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${!filtroTipo ? 'background-color: var(--primary);' : ''}`}>Todos</a>
+			<a href={`/suministros?q=${buscar}&tipo=TENGO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'TENGO' ? 'background-color: var(--primary);' : ''}`}>Ofertas (Tengo)</a>
+			<a href={`/suministros?q=${buscar}&tipo=NECESITO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'NECESITO' ? 'background-color: var(--primary);' : ''}`}>Necesidades (Necesito)</a>
+		</div>
+	</form>
+
+	<div class="lista">
+		{fetchError && <p>Error al cargar los datos: {fetchError.message}</p>}
+		
+		{(!suministros || suministros.length === 0) && !fetchError && (
+			<p>No se encontraron registros de suministros activos.</p>
+		)}
+
+		{suministros && suministros.map((item) => (
+			<div class="card" style={`border-left: 5px solid ${item.tipo_anuncio === 'TENGO' ? '#2e7d32' : 'var(--primary)'}`}>
+				<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+					<h3 style="margin: 0; font-size: 1.2rem;">{item.titulo_item}</h3>
+					<div style="display: flex; gap: 5px;">
+						<span class="badge" style="background: #e0e0e0; color: #333;">{item.categoria}</span>
+						<span class={`badge ${item.tipo_anuncio === 'TENGO' ? 'badge-success' : 'badge-danger'}`}>
+							{item.tipo_anuncio === 'TENGO' ? 'TENGO / OFREZCO' : 'NECESITO'}
+						</span>
+					</div>
+				</div>
+
+				<p style="margin-bottom: 5px; font-size: 0.95rem;">
+					<strong>Existencias:</strong> {item.cantidad_existencias} {item.unidad_medida}
+				</p>
+				
+				{item.descripcion && (
+					<p style="margin-bottom: 8px; font-size: 0.95rem; color: #333; background: var(--gray-light); padding: 8px; border-radius: 4px;">
+						{item.descripcion}
+					</p>
+				)}
+
+				<p style="margin-bottom: 5px; font-size: 0.95rem;">
+					<strong>📍 Ubicación:</strong> {item.ciudad_municipio}, {item.estado} ({item.direccion_referencia})
+				</p>
+
+				<div style="display: flex; gap: 10px; margin-top: 12px; font-size: 0.9rem; align-items: center;">
+					<span style="background: #eee; padding: 3px 8px; border-radius: 4px;">
+						Contacto: <strong>{item.contacto}</strong>
+					</span>
+				</div>
+				<p style="margin-top: 10px; font-size: 0.8rem; color: #777;">
+					Publicado el {new Date(item.creado_el).toLocaleDateString('es-VE', { hour: '2-digit', minute:'2-digit' })}
+				</p>
+			</div>
+		))}
+	</div>
+</Layout>
