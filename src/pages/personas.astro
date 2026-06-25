@@ -163,7 +163,7 @@ const markerItems = (personas || []).map(p => ({
 
 			<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;" class="form-group">
 				<div style="flex: 1; min-width: 200px;">
-					<label>Coordenadas GPS (Opcional para Mapa)</label>
+					<label>Coordenadas GPS (Recomendado para el Mapa interactivo)</label>
 					<div style="display: flex; gap: 8px;">
 						<input type="text" id="input-lat" name="latitud" placeholder="Latitud (Ej: 10.496)" readonly style="background: var(--bg-gray); cursor: not-allowed;" />
 						<input type="text" id="input-lon" name="longitud" placeholder="Longitud (Ej: -66.879)" readonly style="background: var(--bg-gray); cursor: not-allowed;" />
@@ -173,7 +173,10 @@ const markerItems = (personas || []).map(p => ({
 					📍 Capturar GPS
 				</button>
 			</div>
-			<div id="gps-status" style="font-size: 0.85rem; color: #555; margin-top: -10px; margin-bottom: 15px;"></div>
+			<div style="font-size: 0.85rem; color: #444; margin-top: -10px; margin-bottom: 5px; line-height: 1.4;">
+				<strong>🔒 Privacidad y utilidad:</strong> Tu navegador te pedirá permiso (es totalmente seguro). Tu ubicación ayuda a que los vecinos que estén cerca puedan encontrar esta información fácilmente en el mapa interactivo. ¡Por favor, apruébalo!
+			</div>
+			<div id="gps-status" style="font-size: 0.85rem; color: #555; margin-bottom: 15px;"></div>
 
 			<div class="form-group">
 				<label>Foto de la Persona (Opcional - Se comprime automáticamente)</label>
