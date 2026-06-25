@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { supabase, optimizarImagen } from '../lib/supabase';
 import MapaInteractivo from '../components/MapaInteractivo.astro';
+import { ESTADOS } from "../data/venezuela";
 
 let mensaje = '';
 let mensajeTipo = ''; // 'success' o 'error'
@@ -147,11 +148,16 @@ const markerItems = (refugios || []).map(item => ({
 				<div style="display: flex; gap: 10px; flex-wrap: wrap;">
 					<div class="form-group" style="flex: 1; min-width: 150px;">
 						<label>Estado *</label>
-						<input type="text" name="estado" placeholder="Ej: Miranda" required />
+						<select name="estado" class="estado-select" required>
+							<option value="">Selecciona un estado</option>
+							{ESTADOS.map((e) => <option value={e}>{e}</option>)}
+						</select>
 					</div>
 					<div class="form-group" style="flex: 1; min-width: 150px;">
 						<label>Ciudad / Municipio *</label>
-						<input type="text" name="ciudad_municipio" placeholder="Ej: Chacao" required />
+						<select name="ciudad_municipio" class="ciudad-select" required>
+							<option value="">Primero selecciona un estado</option>
+						</select>
 					</div>
 				</div>
 
@@ -337,5 +343,33 @@ const markerItems = (refugios || []).map(item => ({
 	      }
 	    });
 	  }
+	</script>
+	<script>
+		import { MUNICIPIOS_POR_ESTADO } from "../data/venezuela";
+
+		document.addEventListener("DOMContentLoaded", () => {
+			const estadoSelects = document.querySelectorAll(".estado-select");
+			estadoSelects.forEach((estadoSelect) => {
+				estadoSelect.addEventListener("change", (e) => {
+					const target = e.target as HTMLSelectElement;
+					const form = target.closest("form");
+					if (!form) return;
+					
+					const ciudadSelect = form.querySelector(".ciudad-select") as HTMLSelectElement;
+					if (!ciudadSelect) return;
+
+					const estado = target.value;
+					const municipios = MUNICIPIOS_POR_ESTADO[estado as keyof typeof MUNICIPIOS_POR_ESTADO] || [];
+
+					ciudadSelect.innerHTML = '<option value="">Selecciona una ciudad o municipio</option>';
+					municipios.forEach((m) => {
+						const option = document.createElement("option");
+						option.value = m;
+						option.textContent = m;
+						ciudadSelect.appendChild(option);
+					});
+				});
+			});
+		});
 	</script>
 </Layout>
