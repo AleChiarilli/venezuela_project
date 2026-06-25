@@ -119,6 +119,16 @@ const markerItems = (suministros || []).map(item => ({
 	<h1 style="margin-bottom: 10px;">Ayuda, Suministros y Servicios</h1>
 	<p style="margin-bottom: 20px; color: #555;">La solidaridad nos mantiene a flote. ¿Eres médico, psicólogo, o tienes un vehículo para mover escombros? ¿Tienes agua o comida extra? Ofrece tu ayuda, tu tiempo y recursos valen oro. Todos los campos con * son obligatorios.</p>
 
+	<div class="card" style="background-color: var(--bg-gray); border: none; border-left: 5px solid var(--primary-blue); margin-bottom: 25px; border-radius: 4px;">
+		<h3 style="margin-top: 0; margin-bottom: 10px; font-size: 1.15rem; color: var(--primary-blue);">💡 Ideas inspiradoras para ofrecer ayuda (¡Todo cuenta!)</h3>
+		<ul style="padding-left: 20px; font-size: 0.95rem; line-height: 1.5; color: #444;">
+			<li style="margin-bottom: 8px;"><strong>⚡ Energía y Conectividad:</strong> <em>"Generador para cargar el teléfono por horas"</em> o préstamo de baterías cargadas para que los vecinos no queden incomunicados.</li>
+			<li style="margin-bottom: 8px;"><strong>🚗 Transporte y Logística:</strong> <em>"Tengo una camioneta y puedo ayudar a trasladar personas o suministros"</em>, o mover ramas/árboles de la vía.</li>
+			<li style="margin-bottom: 8px;"><strong>🩺 Salud y Cuidado:</strong> <em>"Apoyo psicológico telefónico"</em>, atención primaria de primeros auxilios o consultas básicas.</li>
+			<li style="margin-bottom: 8px;"><strong>🌾 Alimentos y Agua:</strong> Compartir una comida caliente, agua potable limpia o botellas de agua.</li>
+		</ul>
+	</div>
+
 	{mensaje && (
 		<div class="card" style={`background-color: ${mensajeTipo === 'success' ? '#c8e6c9' : '#ffcdd2'}; border-color: ${mensajeTipo === 'success' ? '#81c784' : '#e57373'};`}>
 			<strong>{mensajeTipo === 'success' ? 'Éxito:' : 'Error:'}</strong> {mensaje}
@@ -151,8 +161,8 @@ const markerItems = (suministros || []).map(item => ({
 			</div>
 
 			<div class="form-group">
-				<label>Título del Recurso *</label>
-				<input type="text" name="titulo_item" placeholder="Ej: Harina de maíz, Antibióticos, Botellas de agua de 5L" required />
+				<label>Título del Recurso o Servicio *</label>
+				<input type="text" name="titulo_item" placeholder="Ej: Generador para cargar el teléfono por horas, Harina de maíz, Camioneta para traslados" required />
 			</div>
 
 			<div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -173,7 +183,7 @@ const markerItems = (suministros || []).map(item => ({
 
 			<div class="form-group">
 				<label>Descripción detallada</label>
-				<textarea name="descripcion" placeholder="Ej: Marca PAN, vencimiento en 6 meses. Necesario para 4 niños en el refugio."></textarea>
+				<textarea name="descripcion" placeholder="Ej: Ofrezco encender la planta eléctrica de 6:00 PM a 9:00 PM en el porche para que carguen sus baterías. Traer su propio cargador."></textarea>
 			</div>
 
 			<div style="display: flex; gap: 10px; flex-wrap: wrap;">
