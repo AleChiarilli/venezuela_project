@@ -66,6 +66,7 @@ if (Astro.request.method === 'POST') {
 // Búsqueda simple (si hay query string)
 const url = new URL(Astro.request.url);
 const buscar = url.searchParams.get('q') || '';
+const ubicacion = url.searchParams.get('ubicacion') || '';
 const filtroTipo = url.searchParams.get('tipo') || ''; // 'OFREZCO_TECHO' o 'BUSCO_TECHO'
 
 // Consultar los reportes activos
@@ -76,7 +77,11 @@ let query = supabase
   .order('creado_el', { ascending: false });
 
 if (buscar) {
-  query = query.or(`descripcion.ilike.%${buscar}%,ciudad_municipio.ilike.%${buscar}%`);
+  query = query.or(`descripcion.ilike.%${buscar}%`);
+}
+
+if (ubicacion) {
+  query = query.or(`ciudad_municipio.ilike.%${ubicacion}%,estado.ilike.%${ubicacion}%`);
 }
 
 if (filtroTipo) {
@@ -106,7 +111,7 @@ const markerItems = (refugios || []).map(item => ({
 	</div>
 
 	<h1 style="margin-bottom: 10px;">Refugios y Techo Seguro</h1>
-	<p style="margin-bottom: 20px; color: #555;">Ningún venezolano debería pasar la noche a la intemperie. Si tu casa o local es seguro, ofrece un espacio. Si tuviste que evacuar, solicita refugio aquí. Todos los campos con * son obligatorios.</p>
+	<p style="margin-bottom: 20px; color: #555;">Ningún venezolano debería pasar la noche a la intemperie. ¿Tienes una habitación desocupada o un techo seguro? Ayuda a alguien que no tenga dónde pasar la noche. Tu hospitalidad puede salvar vidas. Todos los campos con * son obligatorios.</p>
 
 	{mensaje && (
 		<div class="card" style={`background-color: ${mensajeTipo === 'success' ? '#c8e6c9' : '#ffcdd2'}; border-color: ${mensajeTipo === 'success' ? '#81c784' : '#e57373'};`}>
@@ -191,15 +196,16 @@ const markerItems = (refugios || []).map(item => ({
 
 	<!-- Filtros y Búsqueda -->
 	<form method="GET" style="background: none; border: none; padding: 0; margin-top: 10px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
-		<div style="display: flex; gap: 10px;">
-			<input type="text" name="q" placeholder="Buscar por descripción, ciudad..." value={buscar} style="flex: 1;" />
+		<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+			<input type="text" name="q" placeholder="Buscar por descripción..." value={buscar} style="flex: 2; min-width: 150px;" />
+			<input type="text" name="ubicacion" placeholder="📍 Ciudad o Estado..." value={ubicacion} style="flex: 1; min-width: 150px;" />
 			<button type="submit" style="width: auto;">Buscar</button>
 		</div>
 		<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
 			<span style="font-size: 0.9rem; font-weight: bold;">Filtrar por tipo:</span>
-			<a href={`/refugios?q=${buscar}`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${!filtroTipo ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Todos</a>
-			<a href={`/refugios?q=${buscar}&tipo=OFREZCO_TECHO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'OFREZCO_TECHO' ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Ofertas (Ofrezco Techo)</a>
-			<a href={`/refugios?q=${buscar}&tipo=BUSCO_TECHO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'BUSCO_TECHO' ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Necesidades (Busco Techo)</a>
+			<a href={`/refugios?q=${buscar}&ubicacion=${ubicacion}`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${!filtroTipo ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Todos</a>
+			<a href={`/refugios?q=${buscar}&ubicacion=${ubicacion}&tipo=OFREZCO_TECHO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'OFREZCO_TECHO' ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Ofertas (Ofrezco Techo)</a>
+			<a href={`/refugios?q=${buscar}&ubicacion=${ubicacion}&tipo=BUSCO_TECHO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'BUSCO_TECHO' ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Necesidades (Busco Techo)</a>
 		</div>
 	</form>
 
@@ -226,9 +232,10 @@ const markerItems = (refugios || []).map(item => ({
 				</div>
 				
 				{item.imagen_url && (
-					<div style="margin-bottom: 12px; max-width: 100%; display: flex; justify-content: flex-start;">
-						<img src={optimizarImagen(item.imagen_url)} alt={`Foto de refugio`} style="max-width: 250px; max-height: 180px; border-radius: 6px; object-fit: cover; border: 2px solid var(--border-color);" />
-					</div>
+					<details style="margin-bottom: 12px; max-width: 100%; border: none; padding: 0; background: transparent;">
+						<summary class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem; display: inline-block; margin-bottom: 8px;">📷 Ver Foto Adjunta</summary>
+						<img src={optimizarImagen(item.imagen_url)} alt={`Foto de refugio`} style="max-width: 100%; max-height: 250px; border-radius: 6px; object-fit: cover; border: 2px solid var(--border-color); display: block;" />
+					</details>
 				)}
 
 				<p style="margin-bottom: 8px; font-size: 0.95rem; color: #333; background: var(--gray-light); padding: 8px; border-radius: 4px; white-space: pre-wrap;">

@@ -64,6 +64,7 @@ if (Astro.request.method === 'POST') {
 // Búsqueda simple (si hay query string)
 const url = new URL(Astro.request.url);
 const buscar = url.searchParams.get('q') || '';
+const ubicacion = url.searchParams.get('ubicacion') || '';
 
 // Consultar los reportes activos
 let query = supabase
@@ -73,8 +74,11 @@ let query = supabase
   .order('created_at', { ascending: false });
 
 if (buscar) {
-  // Buscar en nombre_completo o en ciudad_municipio
-  query = query.or(`nombre_completo.ilike.%${buscar}%,ciudad_municipio.ilike.%${buscar}%`);
+  query = query.or(`nombre_completo.ilike.%${buscar}%,vestimenta_rasgos.ilike.%${buscar}%`);
+}
+
+if (ubicacion) {
+  query = query.or(`ciudad_municipio.ilike.%${ubicacion}%,estado.ilike.%${ubicacion}%`);
 }
 
 const { data: personas, error: fetchError } = await query;
@@ -192,10 +196,11 @@ const markerItems = (personas || []).map(p => ({
 	<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;" />
 
 	<h2>Listado de Búsqueda</h2>
-	<form method="GET" style="background: none; border: none; padding: 0; margin-top: 10px; margin-bottom: 20px; display: flex; gap: 10px;">
-		<input type="text" name="q" placeholder="Buscar por nombre o ciudad..." value={buscar} style="flex: 1;" />
+	<form method="GET" style="background: none; border: none; padding: 0; margin-top: 10px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px;">
+		<input type="text" name="q" placeholder="Buscar por nombre..." value={buscar} style="flex: 2; min-width: 150px;" />
+		<input type="text" name="ubicacion" placeholder="📍 Ciudad o Estado..." value={ubicacion} style="flex: 1; min-width: 150px;" />
 		<button type="submit" style="width: auto;">Buscar</button>
-		{buscar && <a href="/personas" class="btn btn-secondary" style="width: auto;">Limpiar</a>}
+		{(buscar || ubicacion) && <a href="/personas" class="btn btn-secondary" style="width: auto;">Limpiar</a>}
 	</form>
 
 	<div style="margin-bottom: 25px;">
@@ -219,9 +224,10 @@ const markerItems = (personas || []).map(p => ({
 				</div>
 				
 				{persona.imagen_url && (
-					<div style="margin-bottom: 12px; max-width: 100%; display: flex; justify-content: flex-start;">
-						<img src={optimizarImagen(persona.imagen_url)} alt={`Foto de ${persona.nombre_completo}`} style="max-width: 250px; max-height: 180px; border-radius: 6px; object-fit: cover; border: 2px solid var(--border-color);" />
-					</div>
+					<details style="margin-bottom: 12px; max-width: 100%; border: none; padding: 0; background: transparent;">
+						<summary class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem; display: inline-block; margin-bottom: 8px;">📷 Ver Foto Adjunta</summary>
+						<img src={optimizarImagen(persona.imagen_url)} alt={`Foto de ${persona.nombre_completo}`} style="max-width: 100%; max-height: 250px; border-radius: 6px; object-fit: cover; border: 2px solid var(--border-color); display: block;" />
+					</details>
 				)}
 				
 				<p style="margin-bottom: 5px; font-size: 0.95rem;">

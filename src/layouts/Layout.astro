@@ -22,7 +22,7 @@ const { title } = Astro.props;
 				<a href="/" class="logo"><strong>Apoyo</strong>Vzla</a>
 				<nav>
 					<a href="/personas">Personas</a>
-					<a href="/suministros">Suministros</a>
+					<a href="/suministros">Ayuda y Servicios</a>
 					<a href="/refugios">Refugios</a>
 				</nav>
 			</div>
@@ -230,5 +230,22 @@ const { title } = Astro.props;
 	@media (max-width: 480px) {
 		.main-header .container { flex-direction: column; text-align: center; }
 		nav { width: 100%; justify-content: center; }
+	}
+
+	/* Sistema de Grid Responsivo para las Listas */
+	.lista {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 20px;
+	}
+	@media (min-width: 768px) {
+		.lista {
+			grid-template-columns: repeat(2, 1fr);
+		}
+	}
+	@media (min-width: 1024px) {
+		.lista {
+			grid-template-columns: repeat(3, 1fr);
+		}
 	}
 </style>

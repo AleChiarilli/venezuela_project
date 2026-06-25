@@ -72,6 +72,7 @@ if (Astro.request.method === 'POST') {
 // Búsqueda simple (si hay query string)
 const url = new URL(Astro.request.url);
 const buscar = url.searchParams.get('q') || '';
+const ubicacion = url.searchParams.get('ubicacion') || '';
 const filtroTipo = url.searchParams.get('tipo') || ''; // 'TENGO' o 'NECESITO'
 
 // Consultar los reportes activos
@@ -82,7 +83,11 @@ let query = supabase
   .order('creado_el', { ascending: false });
 
 if (buscar) {
-  query = query.or(`titulo_item.ilike.%${buscar}%,ciudad_municipio.ilike.%${buscar}%,descripcion.ilike.%${buscar}%`);
+  query = query.or(`titulo_item.ilike.%${buscar}%,descripcion.ilike.%${buscar}%`);
+}
+
+if (ubicacion) {
+  query = query.or(`ciudad_municipio.ilike.%${ubicacion}%,estado.ilike.%${ubicacion}%`);
 }
 
 if (filtroTipo) {
@@ -106,13 +111,13 @@ const markerItems = (suministros || []).map(item => ({
 }));
 ---
 
-<Layout title="Suministros y Alimentos">
+<Layout title="Ayuda y Servicios">
 	<div style="margin-bottom: 20px;">
 		<a href="/" style="text-decoration: none; color: var(--accent);">← Volver al Inicio</a>
 	</div>
 
-	<h1 style="margin-bottom: 10px;">Acopio y Necesidades Urgentes</h1>
-	<p style="margin-bottom: 20px; color: #555;">La solidaridad nos mantiene a flote. Comparte si dispones de agua, comida o medicinas para donar, o solicita lo que tú y tu comunidad necesitan urgentemente. Todos los campos con * son obligatorios.</p>
+	<h1 style="margin-bottom: 10px;">Ayuda, Suministros y Servicios</h1>
+	<p style="margin-bottom: 20px; color: #555;">La solidaridad nos mantiene a flote. ¿Eres médico, psicólogo, o tienes un vehículo para mover escombros? ¿Tienes agua o comida extra? Ofrece tu ayuda, tu tiempo y recursos valen oro. Todos los campos con * son obligatorios.</p>
 
 	{mensaje && (
 		<div class="card" style={`background-color: ${mensajeTipo === 'success' ? '#c8e6c9' : '#ffcdd2'}; border-color: ${mensajeTipo === 'success' ? '#81c784' : '#e57373'};`}>
@@ -138,7 +143,10 @@ const markerItems = (suministros || []).map(item => ({
 					<option value="MEDICINAS">Medicinas y Primeros Auxilios</option>
 					<option value="AGUA">Agua Potable y Líquidos</option>
 					<option value="HIGIENE">Productos de Higiene Personal</option>
-					<option value="OTROS">Otros Recursos</option>
+					<option value="TRANSPORTE">Transporte y Logística (Ej: Vehículos)</option>
+					<option value="SALUD">Atención Médica y Psicológica</option>
+					<option value="VOLUNTARIADO">Voluntariado y Mano de Obra</option>
+					<option value="OTROS">Otros Recursos o Servicios</option>
 				</select>
 			</div>
 
@@ -224,15 +232,16 @@ const markerItems = (suministros || []).map(item => ({
 
 	<!-- Filtros y Búsqueda -->
 	<form method="GET" style="background: none; border: none; padding: 0; margin-top: 10px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
-		<div style="display: flex; gap: 10px;">
-			<input type="text" name="q" placeholder="Buscar por recurso, ciudad..." value={buscar} style="flex: 1;" />
+		<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+			<input type="text" name="q" placeholder="Buscar ayuda o servicio..." value={buscar} style="flex: 2; min-width: 200px;" />
+			<input type="text" name="ubicacion" placeholder="📍 Ciudad o Estado..." value={ubicacion} style="flex: 1; min-width: 150px;" />
 			<button type="submit" style="width: auto;">Buscar</button>
 		</div>
 		<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
 			<span style="font-size: 0.9rem; font-weight: bold;">Filtrar por tipo:</span>
-			<a href={`/suministros?q=${buscar}`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${!filtroTipo ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Todos</a>
-			<a href={`/suministros?q=${buscar}&tipo=TENGO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'TENGO' ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Ofertas (Tengo)</a>
-			<a href={`/suministros?q=${buscar}&tipo=NECESITO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'NECESITO' ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Necesidades (Necesito)</a>
+			<a href={`/suministros?q=${buscar}&ubicacion=${ubicacion}`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${!filtroTipo ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Todos</a>
+			<a href={`/suministros?q=${buscar}&ubicacion=${ubicacion}&tipo=TENGO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'TENGO' ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Ofertas (Tengo)</a>
+			<a href={`/suministros?q=${buscar}&ubicacion=${ubicacion}&tipo=NECESITO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'NECESITO' ? 'background-color: var(--primary-blue); color: white;' : ''}`}>Necesidades (Necesito)</a>
 		</div>
 	</form>
 
@@ -260,9 +269,10 @@ const markerItems = (suministros || []).map(item => ({
 				</div>
 
 				{item.imagen_url && (
-					<div style="margin-bottom: 12px; max-width: 100%; display: flex; justify-content: flex-start;">
-						<img src={optimizarImagen(item.imagen_url)} alt={`Foto de ${item.titulo_item}`} style="max-width: 250px; max-height: 180px; border-radius: 6px; object-fit: cover; border: 2px solid var(--border-color);" />
-					</div>
+					<details style="margin-bottom: 12px; max-width: 100%; border: none; padding: 0; background: transparent;">
+						<summary class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem; display: inline-block; margin-bottom: 8px;">📷 Ver Foto Adjunta</summary>
+						<img src={optimizarImagen(item.imagen_url)} alt={`Foto de ${item.titulo_item}`} style="max-width: 100%; max-height: 250px; border-radius: 6px; object-fit: cover; border: 2px solid var(--border-color); display: block;" />
+					</details>
 				)}
 
 				<p style="margin-bottom: 5px; font-size: 0.95rem;">
