@@ -12,14 +12,13 @@ if (Astro.request.method === 'POST') {
   try {
     const data = await Astro.request.formData();
     
-    // Extrayendo y limpiando datos
-    const tipo_anuncio = data.get('tipo_anuncio')?.toString() || 'BUSCO_TECHO';
+    const tipo_anuncio_ui = data.get('tipo_anuncio_ui')?.toString() || 'BUSCO_TECHO';
     const capacidad_personas = parseInt(data.get('capacidad_personas')?.toString() || '1', 10);
     const descripcion = data.get('descripcion')?.toString().trim() || '';
     const estado = data.get('estado')?.toString().trim() || '';
     const ciudad_municipio = data.get('ciudad_municipio')?.toString().trim() || '';
     const direccion_referencia = data.get('direccion_referencia')?.toString().trim() || '';
-    const contacto = data.get('contacto')?.toString().trim() || '';
+    let contacto = data.get('contacto')?.toString().trim() || '';
     
     const latStr = data.get('latitud')?.toString();
     const latitud = latStr ? parseFloat(latStr) : null;
@@ -27,7 +26,18 @@ if (Astro.request.method === 'POST') {
     const longitud = lonStr ? parseFloat(lonStr) : null;
     const imagen_url = data.get('imagen_url')?.toString().trim() || null;
 
-    if (!descripcion || !estado || !ciudad_municipio || !contacto) {
+    let tipo_anuncio = tipo_anuncio_ui;
+    let descripcion_final = descripcion;
+
+    if (tipo_anuncio_ui === 'REPORTO_PUBLICO') {
+      tipo_anuncio = 'OFREZCO_TECHO'; // Para la base de datos sigue siendo una oferta de espacio
+      descripcion_final = "[REFUGIO PÚBLICO] " + descripcion;
+      if (!contacto) {
+        contacto = "Lugar Público (Acudir directamente)";
+      }
+    }
+
+    if (!descripcion_final || !estado || !ciudad_municipio || !contacto) {
       throw new Error("Faltan campos obligatorios");
     }
 
@@ -40,7 +50,7 @@ if (Astro.request.method === 'POST') {
       { 
         tipo_anuncio,
         capacidad_personas,
-        descripcion,
+        descripcion: descripcion_final,
         estado,
         ciudad_municipio,
         direccion_referencia,
@@ -129,9 +139,10 @@ const markerItems = (refugios || []).map(item => ({
 			<form method="POST">
 				<div class="form-group">
 					<label>¿Qué deseas registrar? *</label>
-					<select name="tipo_anuncio" required>
+					<select name="tipo_anuncio_ui" id="tipo_anuncio_select" required>
 						<option value="BUSCO_TECHO">Necesitamos un lugar seguro donde dormir</option>
-						<option value="OFREZCO_TECHO">Tengo un espacio seguro para alojar a otros</option>
+						<option value="OFREZCO_TECHO">Tengo un espacio seguro para alojar a otros (Soy dueño/admin)</option>
+						<option value="REPORTO_PUBLICO">Estoy reportando un refugio público activo (Iglesia, colegio, etc.)</option>
 					</select>
 				</div>
 
@@ -167,9 +178,9 @@ const markerItems = (refugios || []).map(item => ({
 				</div>
 
 				<div class="form-group">
-					<label>Información de Contacto *</label>
-					<input type="text" name="contacto" placeholder="Ej: Teléfono, Telegram @usuario, Instagram @usuario" required />
-					<small style="color: #666;">Indica la mejor forma para que se comuniquen contigo directamente.</small>
+					<label id="contacto-label">Información de Contacto *</label>
+					<input type="text" name="contacto" id="contacto-input" placeholder="Ej: Teléfono, Telegram @usuario, Instagram @usuario" required />
+					<small id="contacto-help" style="color: #666;">Indica la mejor forma para que se comuniquen contigo directamente.</small>
 				</div>
 
 				<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;" class="form-group">
@@ -370,6 +381,28 @@ const markerItems = (refugios || []).map(item => ({
 					});
 				});
 			});
+
+			const tipoAnuncioSelect = document.getElementById("tipo_anuncio_select") as HTMLSelectElement;
+			const contactoInput = document.getElementById("contacto-input") as HTMLInputElement;
+			const contactoLabel = document.getElementById("contacto-label");
+			const contactoHelp = document.getElementById("contacto-help");
+
+			if (tipoAnuncioSelect && contactoInput && contactoLabel && contactoHelp) {
+				tipoAnuncioSelect.addEventListener("change", (e) => {
+					const val = (e.target as HTMLSelectElement).value;
+					if (val === "REPORTO_PUBLICO") {
+						contactoInput.required = false;
+						contactoInput.placeholder = "Opcional (Ej: número de la iglesia o lugar)";
+						contactoLabel.innerText = "Información de Contacto del lugar (Opcional)";
+						contactoHelp.innerText = "Puedes dejarlo en blanco si no lo conoces. La plataforma pondrá un texto automático.";
+					} else {
+						contactoInput.required = true;
+						contactoInput.placeholder = "Ej: Teléfono, Telegram @usuario, Instagram @usuario";
+						contactoLabel.innerText = "Información de Contacto *";
+						contactoHelp.innerText = "Indica la mejor forma para que se comuniquen contigo directamente.";
+					}
+				});
+			}
 		});
 	</script>
 </Layout>
