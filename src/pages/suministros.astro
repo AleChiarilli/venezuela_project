@@ -200,7 +200,7 @@ const { data: suministros, error: fetchError } = await query;
 				<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
 					<h3 style="margin: 0; font-size: 1.2rem;">{item.titulo_item}</h3>
 					<div style="display: flex; gap: 5px;">
-						<span class="badge" style="background: #e0e0e0; color: #333;">{item.categoria}</span>
+						<span class="badge badge-neutral">{item.categoria}</span>
 						<span class={`badge ${item.tipo_anuncio === 'TENGO' ? 'badge-success' : 'badge-danger'}`}>
 							{item.tipo_anuncio === 'TENGO' ? 'TENGO / OFREZCO' : 'NECESITO'}
 						</span>
