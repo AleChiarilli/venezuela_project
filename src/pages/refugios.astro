@@ -1,0 +1,195 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { supabase } from '../lib/supabase';
+
+let mensaje = '';
+let mensajeTipo = ''; // 'success' o 'error'
+
+// Procesar el formulario si es POST (Zero-JS)
+if (Astro.request.method === 'POST') {
+  try {
+    const data = await Astro.request.formData();
+    
+    // Extrayendo y limpiando datos
+    const tipo_anuncio = data.get('tipo_anuncio')?.toString() || 'BUSCO_TECHO';
+    const capacidad_personas = parseInt(data.get('capacidad_personas')?.toString() || '1', 10);
+    const descripcion = data.get('descripcion')?.toString().trim() || '';
+    const estado = data.get('estado')?.toString().trim() || '';
+    const ciudad_municipio = data.get('ciudad_municipio')?.toString().trim() || '';
+    const direccion_referencia = data.get('direccion_referencia')?.toString().trim() || '';
+    const contacto = data.get('contacto')?.toString().trim() || '';
+
+    if (!descripcion || !estado || !ciudad_municipio || !contacto) {
+      throw new Error("Faltan campos obligatorios");
+    }
+
+    if (isNaN(capacidad_personas) || capacidad_personas < 1) {
+      throw new Error("La capacidad de personas debe ser al menos 1");
+    }
+
+    // Insertar en Supabase
+    const { error } = await supabase.from('refugios_temporales').insert([
+      { 
+        tipo_anuncio,
+        capacidad_personas,
+        descripcion,
+        estado,
+        ciudad_municipio,
+        direccion_referencia,
+        contacto
+      }
+    ]);
+
+    if (error) {
+      console.error(error);
+      throw new Error("Error al guardar en la base de datos.");
+    }
+    
+    mensaje = 'Anuncio de refugio guardado con éxito. Aparecerá en la lista a continuación.';
+    mensajeTipo = 'success';
+  } catch (error: any) {
+    mensaje = error.message || 'Hubo un error al procesar el refugio.';
+    mensajeTipo = 'error';
+  }
+}
+
+// Búsqueda simple (si hay query string)
+const url = new URL(Astro.request.url);
+const buscar = url.searchParams.get('q') || '';
+const filtroTipo = url.searchParams.get('tipo') || ''; // 'OFREZCO_TECHO' o 'BUSCO_TECHO'
+
+// Consultar los reportes activos
+let query = supabase
+  .from('refugios_temporales')
+  .select('*')
+  .eq('resuelto', false)
+  .order('creado_el', { ascending: false });
+
+if (buscar) {
+  query = query.or(`descripcion.ilike.%${buscar}%,ciudad_municipio.ilike.%${buscar}%`);
+}
+
+if (filtroTipo) {
+  query = query.eq('tipo_anuncio', filtroTipo);
+}
+
+const { data: refugios, error: fetchError } = await query;
+---
+
+<Layout title="Albergues y Refugios">
+	<div style="margin-bottom: 20px;">
+		<a href="/" style="text-decoration: none; color: var(--accent);">← Volver al Inicio</a>
+	</div>
+
+	<h1 style="margin-bottom: 10px;">Albergues y Refugios Temporales</h1>
+	<p style="margin-bottom: 20px; color: #555;">Registra espacios que puedas ofrecer a los afectados (habitaciones, locales, terrenos) o publica si tú y tu familia necesitan un techo temporal. Todos los campos con * son obligatorios.</p>
+
+	{mensaje && (
+		<div class="card" style={`background-color: ${mensajeTipo === 'success' ? '#c8e6c9' : '#ffcdd2'}; border-color: ${mensajeTipo === 'success' ? '#81c784' : '#e57373'};`}>
+			<strong>{mensajeTipo === 'success' ? 'Éxito:' : 'Error:'}</strong> {mensaje}
+		</div>
+	)}
+
+	<details style="margin-bottom: 30px;">
+		<summary class="btn btn-secondary" style="margin-bottom: 15px;">+ Añadir Refugio o Solicitud</summary>
+		<form method="POST">
+			<div class="form-group">
+				<label>¿Qué deseas registrar? *</label>
+				<select name="tipo_anuncio" required>
+					<option value="BUSCO_TECHO">Busco / Necesito techo temporal</option>
+					<option value="OFREZCO_TECHO">Ofrezco espacio / Techo temporal</option>
+				</select>
+			</div>
+
+			<div class="form-group">
+				<label>Capacidad (Nro. aproximado de Personas) *</label>
+				<input type="number" name="capacidad_personas" value="1" min="1" step="1" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 1rem;" required />
+			</div>
+
+			<div class="form-group">
+				<label>Descripción de las condiciones o requerimientos *</label>
+				<textarea name="descripcion" placeholder="Ej: Ofrezco habitación con baño privado y luz de planta eléctrica 2h al día. / Somos una familia de 3 adultos y 1 bebé con 1 perro buscando refugio." required></textarea>
+			</div>
+
+			<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+				<div class="form-group" style="flex: 1; min-width: 150px;">
+					<label>Estado *</label>
+					<input type="text" name="estado" placeholder="Ej: Miranda" required />
+				</div>
+				<div class="form-group" style="flex: 1; min-width: 150px;">
+					<label>Ciudad / Municipio *</label>
+					<input type="text" name="ciudad_municipio" placeholder="Ej: Chacao" required />
+				</div>
+			</div>
+
+			<div class="form-group">
+				<label>Dirección exacta o Referencia de ubicación *</label>
+				<input type="text" name="direccion_referencia" placeholder="Ej: Av. Francisco de Miranda, Edif. Roxana, PB" required />
+			</div>
+
+			<div class="form-group">
+				<label>Información de Contacto *</label>
+				<input type="text" name="contacto" placeholder="Ej: Teléfono o Telegram @usuario" required />
+				<small style="color: #666;">Indica la mejor forma para que se comuniquen contigo directamente.</small>
+			</div>
+
+			<button type="submit">Publicar Refugio</button>
+		</form>
+	</details>
+
+	<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;" />
+
+	<h2>Listado de Refugios</h2>
+
+	<!-- Filtros y Búsqueda -->
+	<form method="GET" style="background: none; border: none; padding: 0; margin-top: 10px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+		<div style="display: flex; gap: 10px;">
+			<input type="text" name="q" placeholder="Buscar por descripción, ciudad..." value={buscar} style="flex: 1;" />
+			<button type="submit" style="width: auto;">Buscar</button>
+		</div>
+		<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+			<span style="font-size: 0.9rem; font-weight: bold;">Filtrar por tipo:</span>
+			<a href={`/refugios?q=${buscar}`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${!filtroTipo ? 'background-color: var(--primary);' : ''}`}>Todos</a>
+			<a href={`/refugios?q=${buscar}&tipo=OFREZCO_TECHO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'OFREZCO_TECHO' ? 'background-color: var(--primary);' : ''}`}>Ofertas (Ofrezco Techo)</a>
+			<a href={`/refugios?q=${buscar}&tipo=BUSCO_TECHO`} class={`btn btn-secondary`} style={`width: auto; padding: 4px 10px; font-size: 0.85rem; ${filtroTipo === 'BUSCO_TECHO' ? 'background-color: var(--primary);' : ''}`}>Necesidades (Busco Techo)</a>
+		</div>
+	</form>
+
+	<div class="lista">
+		{fetchError && <p>Error al cargar los datos: {fetchError.message}</p>}
+		
+		{(!refugios || refugios.length === 0) && !fetchError && (
+			<p>No se encontraron registros de refugios activos.</p>
+		)}
+
+		{refugios && refugios.map((item) => (
+			<div class="card" style={`border-left: 5px solid ${item.tipo_anuncio === 'OFREZCO_TECHO' ? '#2e7d32' : 'var(--primary)'}`}>
+				<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+					<h3 style="margin: 0; font-size: 1.2rem;">
+						{item.tipo_anuncio === 'OFREZCO_TECHO' ? 'Ofrece Espacio' : 'Busca Refugio'}
+					</h3>
+					<span class={`badge ${item.tipo_anuncio === 'OFREZCO_TECHO' ? 'badge-success' : 'badge-danger'}`}>
+						Capacidad: {item.capacidad_personas} {item.capacidad_personas === 1 ? 'persona' : 'personas'}
+					</span>
+				</div>
+				
+				<p style="margin-bottom: 8px; font-size: 0.95rem; color: #333; background: var(--gray-light); padding: 8px; border-radius: 4px; white-space: pre-wrap;">
+					{item.descripcion}
+				</p>
+
+				<p style="margin-bottom: 5px; font-size: 0.95rem;">
+					<strong>📍 Ubicación:</strong> {item.ciudad_municipio}, {item.estado} ({item.direccion_referencia})
+				</p>
+
+				<div style="display: flex; gap: 10px; margin-top: 12px; font-size: 0.9rem; align-items: center;">
+					<span style="background: #eee; padding: 3px 8px; border-radius: 4px;">
+						Contacto: <strong>{item.contacto}</strong>
+					</span>
+				</div>
+				<p style="margin-top: 10px; font-size: 0.8rem; color: #777;">
+					Publicado el {new Date(item.creado_el).toLocaleDateString('es-VE', { hour: '2-digit', minute:'2-digit' })}
+				</p>
+			</div>
+		))}
+	</div>
+</Layout>
