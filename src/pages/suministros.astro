@@ -68,8 +68,8 @@ const filtroTipo = url.searchParams.get('tipo') || ''; // 'TENGO' o 'NECESITO'
 let query = supabase
   .from('suministros_ayuda')
   .select('*')
-  .eq('estatus_actual', 'ACTIVO')
-  .order('created_at', { ascending: false });
+  .eq('resuelto', false)
+  .order('creado_el', { ascending: false });
 
 if (buscar) {
   query = query.or(`titulo_item.ilike.%${buscar}%,ciudad_municipio.ilike.%${buscar}%,descripcion.ilike.%${buscar}%`);
@@ -227,7 +227,7 @@ const { data: suministros, error: fetchError } = await query;
 					</span>
 				</div>
 				<p style="margin-top: 10px; font-size: 0.8rem; color: #777;">
-					Publicado el {new Date(item.created_at).toLocaleDateString('es-VE', { hour: '2-digit', minute:'2-digit' })}
+					Publicado el {new Date(item.creado_el).toLocaleDateString('es-VE', { hour: '2-digit', minute:'2-digit' })}
 				</p>
 			</div>
 		))}
