@@ -102,8 +102,8 @@ const nombresCategorias: Record<string, string> = {
   AGUA: 'Agua Potable y Limpia',
   HIGIENE: 'Aseo e Higiene Personal',
   TRANSPORTE: 'Vehículos y Traslados',
-  SALUD: 'Apoyo Médico y Psicológico',
-  VOLUNTARIADO: 'Manos para Ayudar (Voluntarios)',
+  SALUD: 'Médico, Psicológico y Veterinario',
+  VOLUNTARIADO: 'Voluntariado y Apoyo a Centros',
   OTROS: 'Otros Apoyos y Servicios'
 };
 
@@ -135,7 +135,9 @@ const markerItems = (suministros || []).map(item => ({
 		<ul style="padding-left: 20px; font-size: 0.95rem; line-height: 1.5; color: #444;">
 			<li style="margin-bottom: 8px;"><strong>⚡ Energía y Conectividad:</strong> <em>"Generador para cargar el teléfono por horas"</em> o préstamo de baterías cargadas para que los vecinos no queden incomunicados.</li>
 			<li style="margin-bottom: 8px;"><strong>🚗 Transporte y Logística:</strong> <em>"Tengo una camioneta y puedo ayudar a trasladar personas o suministros"</em>, o mover ramas/árboles de la vía.</li>
-			<li style="margin-bottom: 8px;"><strong>🩺 Salud y Cuidado:</strong> <em>"Apoyo psicológico telefónico"</em>, atención primaria de primeros auxilios o consultas básicas.</li>
+			<li style="margin-bottom: 8px;"><strong>🩺 Médicos, Enfermeros y Psicólogos:</strong> <em>"Apoyo psicológico telefónico"</em>, atención primaria de primeros auxilios, curas o consultas básicas de salud.</li>
+			<li style="margin-bottom: 8px;"><strong>🐾 Veterinarios y Mascotas:</strong> Ofrecer atención a mascotas heridas o compartir comida para perros/gatos.</li>
+			<li style="margin-bottom: 8px;"><strong>🤝 Voluntariado y Apoyo a Centros:</strong> <em>"Ayuda para clasificar donaciones en el centro parroquial"</em> o apoyo de voluntarios en albergues habilitados.</li>
 			<li style="margin-bottom: 8px;"><strong>🌾 Alimentos y Agua:</strong> Compartir una comida caliente, agua potable limpia o botellas de agua.</li>
 		</ul>
 	</div>
@@ -169,8 +171,8 @@ const markerItems = (suministros || []).map(item => ({
 						<option value="AGUA">Agua Potable y Limpia</option>
 						<option value="HIGIENE">Aseo e Higiene Personal</option>
 						<option value="TRANSPORTE">Vehículos y Traslados</option>
-						<option value="SALUD">Apoyo Médico y Psicológico</option>
-						<option value="VOLUNTARIADO">Manos para Ayudar (Voluntarios)</option>
+						<option value="SALUD">Apoyo Médico, Psicológico y Veterinario</option>
+						<option value="VOLUNTARIADO">Manos para Ayudar (Voluntarios y Centros de Donación)</option>
 						<option value="OTROS">Otros Apoyos y Servicios</option>
 					</select>
 				</div>
