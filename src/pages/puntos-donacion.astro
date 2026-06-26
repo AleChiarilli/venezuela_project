@@ -31,13 +31,40 @@ if (Astro.request.method === 'POST') {
       const horarios = data.get('horarios')?.toString().trim() || '';
       
       const latStr = data.get('latitud')?.toString();
-      const latitud = latStr ? parseFloat(latStr) : null;
+      let latitud = latStr ? parseFloat(latStr) : null;
       const lonStr = data.get('longitud')?.toString();
-      const longitud = lonStr ? parseFloat(lonStr) : null;
+      let longitud = lonStr ? parseFloat(lonStr) : null;
       const imagen_url = data.get('imagen_url')?.toString().trim() || null;
 
       if (!nombre_centro || !pais || !ciudad || !direccion_exacta || !que_reciben || !contacto) {
         throw new Error("Faltan campos obligatorios");
+      }
+
+      // GEOCODIFICACIÓN SERVER-SIDE: Si no mandó GPS manual, lo calculamos con alta precisión
+      if ((!latitud || !longitud || isNaN(latitud)) && direccion_exacta) {
+        try {
+          const queryGeocode = `${direccion_exacta}, ${ciudad}, ${pais}`;
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryGeocode)}&limit=1`, {
+            headers: { 'User-Agent': 'RedSolidaridadVenezuela/1.0' }
+          });
+          const geoData = await res.json();
+          if (geoData && geoData.length > 0) {
+            latitud = parseFloat(geoData[0].lat);
+            longitud = parseFloat(geoData[0].lon);
+          } else {
+            // Fallback: Si la dirección exacta no se encuentra, busca al menos la ciudad
+            const resFallback = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(ciudad + ', ' + pais)}&limit=1`, {
+              headers: { 'User-Agent': 'RedSolidaridadVenezuela/1.0' }
+            });
+            const geoFallback = await resFallback.json();
+            if (geoFallback && geoFallback.length > 0) {
+              latitud = parseFloat(geoFallback[0].lat);
+              longitud = parseFloat(geoFallback[0].lon);
+            }
+          }
+        } catch (e) {
+          console.error("Error en geocodificación server-side:", e);
+        }
       }
 
       const token_edicion = crypto.randomUUID();
@@ -51,8 +78,8 @@ if (Astro.request.method === 'POST') {
           que_reciben,
           contacto,
           horarios,
-          latitud: isNaN(latitud as any) ? null : latitud,
-          longitud: isNaN(longitud as any) ? null : longitud,
+          latitud: latitud,
+          longitud: longitud,
           imagen_url,
           token_edicion
         }
