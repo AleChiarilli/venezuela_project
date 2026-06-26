@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { supabase, optimizarImagen } from '../lib/supabase';
 import MapaInteractivo from '../components/MapaInteractivo.astro';
+import { PAISES_MUNDO } from "../data/paises";
 
 let mensaje = '';
 let mensajeTipo = ''; // 'success' o 'error'
@@ -141,7 +142,10 @@ const markerItems = (centros || []).map(item => ({
 				<div style="display: flex; gap: 10px; flex-wrap: wrap;">
 					<div class="form-group" style="flex: 1; min-width: 150px;">
 						<label>País *</label>
-						<input type="text" name="pais" id="pais-input" placeholder="Ej: España, Estados Unidos, Colombia..." required />
+						<select name="pais" id="pais-input" required>
+							<option value="">Selecciona el país</option>
+							{PAISES_MUNDO.map(p => <option value={p}>{p}</option>)}
+						</select>
 					</div>
 					<div class="form-group" style="flex: 1; min-width: 150px;">
 						<label>Ciudad / Estado / Provincia *</label>
