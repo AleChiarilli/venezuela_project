@@ -2,7 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import { supabase, optimizarImagen } from "../lib/supabase";
 import MapaInteractivo from "../components/MapaInteractivo.astro";
-import { ESTADOS } from "../data/venezuela";
+import { ESTADOS, COORDENADAS_ESTADOS } from "../data/venezuela";
 
 let mensaje = "";
 let mensajeTipo = ""; // 'success' o 'error'
@@ -129,8 +129,8 @@ const { data: personas, error: fetchError } = await query;
 // Preparar los marcadores para el mapa
 const markerItems = (personas || []).map((p) => ({
 	id: p.id,
-	latitud: p.latitud ? parseFloat(p.latitud.toString()) : null,
-	longitud: p.longitud ? parseFloat(p.longitud.toString()) : null,
+	latitud: p.latitud ? parseFloat(p.latitud.toString()) : (COORDENADAS_ESTADOS[p.estado] ? COORDENADAS_ESTADOS[p.estado][0] + (Math.random() - 0.5) * 0.05 : null),
+	longitud: p.longitud ? parseFloat(p.longitud.toString()) : (COORDENADAS_ESTADOS[p.estado] ? COORDENADAS_ESTADOS[p.estado][1] + (Math.random() - 0.5) * 0.05 : null),
 	titulo: p.nombre_completo,
 	subtitulo: `${p.ciudad_municipio}, ${p.estado}`,
 	descripcion: p.vestimenta_rasgos || "",
@@ -642,6 +642,32 @@ const markerItems = (personas || []).map((p) => ({
 						option.textContent = m;
 						ciudadSelect.appendChild(option);
 					});
+				});
+			});
+
+			// Autocompletar coordenadas aproximadas si el usuario no usa GPS
+			const ciudadSelects = document.querySelectorAll(".ciudad-select");
+			ciudadSelects.forEach((ciudadSelect) => {
+				ciudadSelect.addEventListener("change", (e) => {
+					const target = e.target as HTMLSelectElement;
+					const form = target.closest("form");
+					if (!form) return;
+					
+					const estadoSelect = form.querySelector(".estado-select") as HTMLSelectElement;
+					const inputLat = form.querySelector("input[name='latitud']") as HTMLInputElement;
+					const inputLon = form.querySelector("input[name='longitud']") as HTMLInputElement;
+					
+					if (estadoSelect && target.value && inputLat && inputLon && !inputLat.value) {
+						// Llamar a geocoding simple
+						fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(target.value + ", " + estadoSelect.value + ", Venezuela")}`)
+							.then(res => res.json())
+							.then(data => {
+								if (data && data.length > 0 && !inputLat.value) {
+									inputLat.value = data[0].lat;
+									inputLon.value = data[0].lon;
+								}
+							}).catch(() => {});
+					}
 				});
 			});
 		});

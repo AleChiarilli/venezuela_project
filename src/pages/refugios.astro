@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { supabase, optimizarImagen } from '../lib/supabase';
 import MapaInteractivo from '../components/MapaInteractivo.astro';
-import { ESTADOS } from "../data/venezuela";
+import { ESTADOS, COORDENADAS_ESTADOS } from "../data/venezuela";
 
 let mensaje = '';
 let mensajeTipo = ''; // 'success' o 'error'
@@ -130,8 +130,8 @@ const { data: refugios, error: fetchError } = await query;
 // Preparar los marcadores para el mapa
 const markerItems = (refugios || []).map(item => ({
   id: item.id,
-  latitud: item.latitud ? parseFloat(item.latitud.toString()) : null,
-  longitud: item.longitud ? parseFloat(item.longitud.toString()) : null,
+  latitud: item.latitud ? parseFloat(item.latitud.toString()) : (COORDENADAS_ESTADOS[item.estado] ? COORDENADAS_ESTADOS[item.estado][0] + (Math.random() - 0.5) * 0.05 : null),
+  longitud: item.longitud ? parseFloat(item.longitud.toString()) : (COORDENADAS_ESTADOS[item.estado] ? COORDENADAS_ESTADOS[item.estado][1] + (Math.random() - 0.5) * 0.05 : null),
   titulo: item.tipo_anuncio === 'OFREZCO_TECHO' ? 'Ofrece Refugio/Techo' : 'Busca Refugio/Techo',
   subtitulo: `${item.ciudad_municipio}, ${item.estado}`,
   descripcion: `Capacidad: ${item.capacidad_personas} pers. - ${item.descripcion}`,
@@ -425,6 +425,32 @@ const markerItems = (refugios || []).map(item => ({
 						option.textContent = m;
 						ciudadSelect.appendChild(option);
 					});
+				});
+			});
+
+			// Autocompletar coordenadas aproximadas si el usuario no usa GPS
+			const ciudadSelects = document.querySelectorAll(".ciudad-select");
+			ciudadSelects.forEach((ciudadSelect) => {
+				ciudadSelect.addEventListener("change", (e) => {
+					const target = e.target as HTMLSelectElement;
+					const form = target.closest("form");
+					if (!form) return;
+					
+					const estadoSelect = form.querySelector(".estado-select") as HTMLSelectElement;
+					const inputLat = form.querySelector("input[name='latitud']") as HTMLInputElement;
+					const inputLon = form.querySelector("input[name='longitud']") as HTMLInputElement;
+					
+					if (estadoSelect && target.value && inputLat && inputLon && !inputLat.value) {
+						// Llamar a geocoding simple
+						fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(target.value + ", " + estadoSelect.value + ", Venezuela")}`)
+							.then(res => res.json())
+							.then(data => {
+								if (data && data.length > 0 && !inputLat.value) {
+									inputLat.value = data[0].lat;
+									inputLon.value = data[0].lon;
+								}
+							}).catch(() => {});
+					}
 				});
 			});
 
