@@ -55,3 +55,31 @@ ON public.centros_acopio
 FOR UPDATE
 TO public
 USING (token_edicion IS NOT NULL);
+
+-- MIGRACIÓN 4: Números de Emergencia Locales
+CREATE TABLE IF NOT EXISTS public.numeros_emergencia (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    creado_el TIMESTAMPTZ DEFAULT NOW(),
+    numero TEXT NOT NULL,
+    descripcion TEXT NOT NULL,
+    estado TEXT NOT NULL,
+    ciudad_municipio TEXT NOT NULL,
+    activo BOOLEAN DEFAULT TRUE,
+    token_edicion TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_numeros_estado ON public.numeros_emergencia(estado);
+CREATE INDEX IF NOT EXISTS idx_numeros_ciudad ON public.numeros_emergencia(ciudad_municipio);
+CREATE INDEX IF NOT EXISTS idx_numeros_token ON public.numeros_emergencia(token_edicion);
+
+-- RLS
+ALTER TABLE public.numeros_emergencia ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Permitir lectura a todos numeros"
+ON public.numeros_emergencia FOR SELECT TO public USING (true);
+
+CREATE POLICY "Permitir inserción numeros"
+ON public.numeros_emergencia FOR INSERT TO public WITH CHECK (true);
+
+CREATE POLICY "Permitir actualización con token numeros"
+ON public.numeros_emergencia FOR UPDATE TO public USING (token_edicion IS NOT NULL);
