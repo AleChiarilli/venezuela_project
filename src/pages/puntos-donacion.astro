@@ -138,6 +138,90 @@ const markerItems = (centros || []).map(item => ({
   contacto: item.contacto,
   imagen_url: item.imagen_url
 })).filter(m => m.latitud !== null && m.longitud !== null);
+
+function parseContacto(contacto: string, pais: string) {
+  if (!contacto) return { phone: null, formattedPhone: null, whatsappUrl: null, groupUrl: null, rawText: '' };
+  
+  let phone: string | null = null;
+  let whatsappUrl: string | null = null;
+  let groupUrl: string | null = null;
+  let rawText = contacto;
+
+  // 1. Detect URLs
+  const urlRegex = /(https?:\/\/[^\s|]+)/gi;
+  const urls = contacto.match(urlRegex) || [];
+
+  for (const url of urls) {
+    rawText = rawText.replace(url, '');
+    if (url.includes('chat.whatsapp.com')) {
+      groupUrl = url;
+    } else if (url.includes('wa.me') || url.includes('api.whatsapp.com') || url.includes('whatsapp.com/send')) {
+      whatsappUrl = url;
+      const phoneMatch = url.match(/(?:wa\.me\/|phone=)([+0-9]+)/);
+      if (phoneMatch) {
+        phone = phoneMatch[1];
+      }
+    }
+  }
+
+  rawText = rawText.replace(/WhatsApp\s*:\s*/gi, '').replace(/WhatsApp/gi, '');
+
+  // 2. Extract phone number if not extracted yet
+  if (!phone) {
+    const cleanNumbers = rawText.replace(/[^\d+]/g, '');
+    if (cleanNumbers.length >= 9) {
+      phone = cleanNumbers;
+      if (phone.length === 9 && !phone.startsWith('+')) {
+        if (pais?.toLowerCase() === 'españa') {
+          phone = '+34' + phone;
+        }
+      }
+    }
+  }
+
+  // 3. Format the phone number
+  let formattedPhone = phone;
+  if (phone) {
+    const rawDigits = phone.replace(/[^\d]/g, '');
+    if (rawDigits.startsWith('34') && rawDigits.length === 11) {
+      formattedPhone = `+34 ${rawDigits.slice(2, 5)} ${rawDigits.slice(5, 8)} ${rawDigits.slice(8)}`;
+    } else if (rawDigits.length === 9) {
+      formattedPhone = `${rawDigits.slice(0, 3)} ${rawDigits.slice(3, 6)} ${rawDigits.slice(6)}`;
+    }
+  }
+
+  // 4. Generate WhatsApp direct link if they provided phone but no link
+  if (phone && !whatsappUrl && !groupUrl) {
+    const cleanPhone = phone.replace(/[^\d]/g, '');
+    whatsappUrl = `https://wa.me/${cleanPhone}`;
+  }
+
+  // 5. Clean up remaining rawText
+  rawText = rawText
+    .replace(/[|()\-+]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+    
+  if (phone) {
+    const justDigits = phone.replace(/[^\d]/g, '');
+    const digitsRegex = new RegExp(justDigits.split('').join('\\s*'), 'g');
+    rawText = rawText.replace(digitsRegex, '');
+  }
+
+  rawText = rawText.replace(/contacto\s*:\s*/gi, '').replace(/\s+/g, ' ').trim();
+
+  if (/^(contacto|teléfono|telefono|tfno|celular|whatsapp)$/i.test(rawText)) {
+    rawText = '';
+  }
+
+  return {
+    phone,
+    formattedPhone,
+    whatsappUrl,
+    groupUrl,
+    rawText
+  };
+}
 ---
 
 <Layout title="Puntos de Donación">
@@ -287,11 +371,41 @@ const markerItems = (centros || []).map(item => ({
                     </p>
                 )}
 
-				<div style="display: flex; gap: 10px; margin-top: 12px; font-size: 0.9rem; align-items: center;">
-					<span style="background: #eee; padding: 3px 8px; border-radius: 4px;">
-						Contacto: <strong>{item.contacto}</strong>
-					</span>
-				</div>
+				{(() => {
+					const parsed = parseContacto(item.contacto, item.pais);
+					if (!parsed) return null;
+					return (
+						<div style="display: flex; flex-direction: column; gap: 8px; margin-top: 15px; font-size: 0.95rem; border-top: 1px dashed var(--border-color); padding-top: 12px;">
+							{parsed.rawText && (
+								<div style="color: #555; font-size: 0.9rem;">
+									<strong>Contacto:</strong> {parsed.rawText}
+								</div>
+							)}
+							<div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+								{parsed.phone && (
+									<a href={`tel:${parsed.phone}`} class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; text-decoration: none; border-color: #cbd5e1; background-color: #f8fafc; color: #1e293b; height: auto;">
+										📞 Llamar: <strong>{parsed.formattedPhone}</strong>
+									</a>
+								)}
+								{parsed.whatsappUrl && (
+									<a href={parsed.whatsappUrl} target="_blank" rel="noopener noreferrer" class="btn" style="padding: 6px 12px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; text-decoration: none; background-color: #25d366; color: white; border: none; height: auto;">
+										💬 Chat WhatsApp
+									</a>
+								)}
+								{parsed.groupUrl && (
+									<a href={parsed.groupUrl} target="_blank" rel="noopener noreferrer" class="btn" style="padding: 6px 12px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; text-decoration: none; background-color: #128c7e; color: white; border: none; height: auto;">
+										👥 Grupo WhatsApp
+									</a>
+								)}
+								{!parsed.phone && !parsed.whatsappUrl && !parsed.groupUrl && (
+									<span style="background: #eee; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; color: #333;">
+										Contacto: <strong>{item.contacto}</strong>
+									</span>
+								)}
+							</div>
+						</div>
+					);
+				})()}
 
 				<!-- Botón owner: se muestra via JS -->
 				<div class="owner-actions" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color);">
