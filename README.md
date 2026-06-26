@@ -22,6 +22,7 @@ Nace con el objetivo de resolver el problema de la información efímera y desor
 - 🫂 Búsqueda de Personas
 - 🍞 Donaciones y Suministros
 - 🏠 Refugios y Techos Seguros
+- 🌍 Puntos de Donación (Internacionales)
 
 ---
 

@@ -1,0 +1,417 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { supabase, optimizarImagen } from '../lib/supabase';
+import MapaInteractivo from '../components/MapaInteractivo.astro';
+
+let mensaje = '';
+let mensajeTipo = ''; // 'success' o 'error'
+
+// Procesar el formulario si es POST (Zero-JS)
+if (Astro.request.method === 'POST') {
+  try {
+    const data = await Astro.request.formData();
+    const action = data.get('action')?.toString() || 'crear';
+
+    if (action === 'desactivar_centro') {
+      const id = data.get('id')?.toString();
+      const token_edicion = data.get('token_edicion')?.toString();
+      if (!id || !token_edicion) throw new Error('Datos inválidos');
+      const { error } = await supabase.from('centros_acopio').update({ activo: false }).eq('id', id).eq('token_edicion', token_edicion);
+      if (error) throw new Error('No se pudo desactivar el centro.');
+      mensaje = '¡Punto de donación marcado como inactivo!';
+      mensajeTipo = 'success';
+    } else {
+      const nombre_centro = data.get('nombre_centro')?.toString().trim() || '';
+      const pais = data.get('pais')?.toString().trim() || '';
+      const ciudad = data.get('ciudad')?.toString().trim() || '';
+      const direccion_exacta = data.get('direccion_exacta')?.toString().trim() || '';
+      const que_reciben = data.get('que_reciben')?.toString().trim() || '';
+      const contacto = data.get('contacto')?.toString().trim() || '';
+      const horarios = data.get('horarios')?.toString().trim() || '';
+      
+      const latStr = data.get('latitud')?.toString();
+      const latitud = latStr ? parseFloat(latStr) : null;
+      const lonStr = data.get('longitud')?.toString();
+      const longitud = lonStr ? parseFloat(lonStr) : null;
+      const imagen_url = data.get('imagen_url')?.toString().trim() || null;
+
+      if (!nombre_centro || !pais || !ciudad || !direccion_exacta || !que_reciben || !contacto) {
+        throw new Error("Faltan campos obligatorios");
+      }
+
+      const token_edicion = crypto.randomUUID();
+
+      const { error } = await supabase.from('centros_acopio').insert([
+        { 
+          nombre_centro,
+          pais,
+          ciudad,
+          direccion_exacta,
+          que_reciben,
+          contacto,
+          horarios,
+          latitud: isNaN(latitud as any) ? null : latitud,
+          longitud: isNaN(longitud as any) ? null : longitud,
+          imagen_url,
+          token_edicion
+        }
+      ]);
+
+      if (error) {
+        console.error(error);
+        throw new Error("Error al guardar en la base de datos.");
+      }
+      
+      mensaje = 'Punto de Donación guardado con éxito. Desde este dispositivo podrás marcarlo como inactivo si dejan de recibir ayudas.';
+      mensajeTipo = 'success';
+      // @ts-ignore
+      Astro.locals._nuevoToken = token_edicion;
+    }
+  } catch (error: any) {
+    mensaje = error.message || 'Hubo un error al procesar el punto de donación.';
+    mensajeTipo = 'error';
+  }
+}
+
+// Búsqueda simple (si hay query string)
+const url = new URL(Astro.request.url);
+const buscar = url.searchParams.get('q') || '';
+const ubicacion = url.searchParams.get('ubicacion') || '';
+// @ts-ignore
+const nuevoToken = Astro.locals._nuevoToken || '';
+
+// Consultar los reportes activos
+let query = supabase
+  .from('centros_acopio')
+  .select('*')
+  .eq('activo', true)
+  .order('creado_el', { ascending: false });
+
+if (buscar) {
+  query = query.or(`que_reciben.ilike.%${buscar}%,nombre_centro.ilike.%${buscar}%`);
+}
+
+if (ubicacion) {
+  query = query.or(`pais.ilike.%${ubicacion}%,ciudad.ilike.%${ubicacion}%`);
+}
+
+const { data: centros, error: fetchError } = await query;
+
+// Preparar los marcadores para el mapa
+const markerItems = (centros || []).map(item => ({
+  id: item.id,
+  latitud: item.latitud ? parseFloat(item.latitud.toString()) : null,
+  longitud: item.longitud ? parseFloat(item.longitud.toString()) : null,
+  titulo: item.nombre_centro,
+  subtitulo: `${item.ciudad}, ${item.pais}`,
+  descripcion: `Reciben: ${item.que_reciben}`,
+  badge: 'CENTRO',
+  badgeType: 'success' as const,
+  contacto: item.contacto,
+  imagen_url: item.imagen_url
+})).filter(m => m.latitud !== null && m.longitud !== null);
+---
+
+<Layout title="Puntos de Donación">
+	<div style="margin-bottom: 20px;">
+		<a href="/" style="text-decoration: none; color: var(--accent);">← Volver al Inicio</a>
+	</div>
+
+	<h1 style="margin-bottom: 10px;">Puntos de Donación Nacionales e Internacionales</h1>
+	<p style="margin-bottom: 20px; color: #555;">Encuentra o registra puntos de recolección en cualquier parte del mundo. Ayuda a canalizar los insumos y donaciones hacia quienes más lo necesitan en Venezuela. Todos los campos con * son obligatorios.</p>
+
+	{mensaje && (
+		<div class="card" style={`background-color: ${mensajeTipo === 'success' ? '#c8e6c9' : '#ffcdd2'}; border-color: ${mensajeTipo === 'success' ? '#81c784' : '#e57373'};`}>
+			<strong>{mensajeTipo === 'success' ? 'Éxito:' : 'Error:'}</strong> {mensaje}
+		</div>
+	)}
+
+	<details style="margin-bottom: 30px; border: 2px solid var(--primary-blue); background-color: #f0f7ff; padding: 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 91, 181, 0.08);">
+		<summary class="btn" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin: 0 auto; max-width: 550px; font-size: 1.2rem; cursor: pointer; border: none; outline: none; box-shadow: 0 4px 10px rgba(0, 91, 181, 0.25);">
+			🌍 Registrar un Nuevo Punto de Donación
+		</summary>
+		
+		<div style="margin-top: 24px; background: #ffffff; padding: 20px; border-radius: 6px; border: 1px solid var(--border-color);">
+			<form method="POST">
+				<div class="form-group">
+					<label>Nombre del Lugar, Asociación o Agrupación *</label>
+					<input type="text" name="nombre_centro" placeholder="Ej: Asociación de Venezolanos en Madrid, Grupo Solidario Miami..." required />
+				</div>
+
+				<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+					<div class="form-group" style="flex: 1; min-width: 150px;">
+						<label>País *</label>
+						<input type="text" name="pais" id="pais-input" placeholder="Ej: España, Estados Unidos, Colombia..." required />
+					</div>
+					<div class="form-group" style="flex: 1; min-width: 150px;">
+						<label>Ciudad / Estado / Provincia *</label>
+						<input type="text" name="ciudad" id="ciudad-input" placeholder="Ej: Madrid, Florida, Bogotá..." required />
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label>Dirección exacta de recolección *</label>
+					<input type="text" name="direccion_exacta" id="direccion-input" placeholder="Ej: Calle Gran Vía 123, Local 4" required />
+				</div>
+
+				<div class="form-group">
+					<label>¿Qué tipo de insumos reciben? *</label>
+					<textarea name="que_reciben" placeholder="Ej: Medicinas de primeros auxilios, ropa en buen estado, alimentos no perecederos. (NO recibimos dinero)." required></textarea>
+				</div>
+
+                <div class="form-group">
+					<label>Horario de recepción (Opcional)</label>
+					<input type="text" name="horarios" placeholder="Ej: Lunes a Viernes de 9:00 AM a 5:00 PM" />
+				</div>
+
+				<div class="form-group">
+					<label>Información de Contacto *</label>
+					<input type="text" name="contacto" placeholder="Ej: WhatsApp +34 600..., Instagram @usuario" required />
+					<small style="color: #666;">Indica cómo pueden comunicarse contigo o ver información oficial.</small>
+				</div>
+
+				<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;" class="form-group">
+					<div style="flex: 1; min-width: 200px;">
+						<label>Coordenadas GPS (Opcional - Recomendado para el Mapa)</label>
+						<div style="display: flex; gap: 8px;">
+							<input type="text" id="input-lat" name="latitud" placeholder="Latitud (Ej: 40.416)" style="flex: 1; min-width: 80px;" />
+							<input type="text" id="input-lon" name="longitud" placeholder="Longitud (Ej: -3.703)" style="flex: 1; min-width: 80px;" />
+						</div>
+					</div>
+					<button type="button" id="btn-gps" class="btn btn-secondary" style="height: 48px; padding: 0 15px; font-size: 0.9rem; white-space: nowrap;">
+						📍 Capturar mi GPS actual
+					</button>
+				</div>
+				<div style="font-size: 0.85rem; color: #444; margin-top: -10px; margin-bottom: 5px; line-height: 1.4;">
+					<strong>📍 Importante:</strong> El sistema intentará autocompletar las coordenadas al escribir el país y la ciudad. También puedes presionar el botón de GPS o pegarlas desde Google Maps.
+				</div>
+				<div id="gps-status" style="font-size: 0.85rem; color: #555; margin-bottom: 15px;"></div>
+
+				<div class="form-group">
+					<label>Foto del Lugar o Flyer (Opcional - Se comprime automáticamente)</label>
+					<input type="file" id="image-file" accept="image/*" style="border: 2px solid var(--border-color); padding: 8px; width: 100%; border-radius: 6px; font-size: 0.95rem;" />
+					<input type="hidden" name="imagen_url" id="input-imagen-url" />
+					<div id="upload-status" style="font-size: 0.85rem; color: #555; margin-top: 5px;"></div>
+				</div>
+
+				<button type="submit">Publicar Punto de Donación</button>
+			</form>
+		</div>
+	</details>
+
+	<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;" />
+
+	<h2>Directorio de Puntos de Donación</h2>
+
+	<!-- Filtros y Búsqueda -->
+	<form method="GET" style="background: none; border: none; padding: 0; margin-top: 10px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+		<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+			<input type="text" name="q" placeholder="Buscar insumo o nombre..." value={buscar} style="flex: 2; min-width: 150px;" />
+			<input type="text" name="ubicacion" placeholder="🌍 Buscar País o Ciudad..." value={ubicacion} style="flex: 1; min-width: 150px;" />
+			<button type="submit" style="width: auto;">Buscar</button>
+		</div>
+	</form>
+
+    {markerItems.length > 0 && (
+        <div style="margin-bottom: 25px;">
+            <MapaInteractivo items={markerItems} mapId="mapa-centros" />
+        </div>
+    )}
+
+	<div class="lista">
+		{fetchError && <p>Error al cargar los datos: {fetchError.message}</p>}
+		
+		{(!centros || centros.length === 0) && !fetchError && (
+			<p>No se encontraron registros de puntos de donación activos. ¡Sé el primero en registrar uno!</p>
+		)}
+
+		{centros && centros.map((item) => (
+			<div class="card" data-token={item.token_edicion || ''} data-id={item.id} style={`border-left: 5px solid #2e7d32`}>
+				<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+					<h3 style="margin: 0; font-size: 1.2rem;">
+						{item.nombre_centro}
+					</h3>
+					<span class="badge badge-success">
+						🌍 {item.pais}
+					</span>
+				</div>
+				
+				{item.imagen_url && (
+					<details style="margin-bottom: 12px; max-width: 100%; border: none; padding: 0; background: transparent;">
+						<summary class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem; display: inline-block; margin-bottom: 8px;">📷 Ver Foto o Flyer</summary>
+						<img src={optimizarImagen(item.imagen_url)} alt={`Foto de punto de donación`} class="img-zoomable" style="max-width: 100%; max-height: 250px; border-radius: 6px; object-fit: cover; border: 2px solid var(--border-color); display: block;" />
+					</details>
+				)}
+
+				<p style="margin-bottom: 8px; font-size: 0.95rem; color: #333; background: var(--gray-light); padding: 8px; border-radius: 4px; white-space: pre-wrap;">
+					<strong>Reciben:</strong><br/>
+                    {item.que_reciben}
+				</p>
+
+				<p style="margin-bottom: 5px; font-size: 0.95rem;">
+					<strong>📍 Ubicación:</strong> {item.ciudad}, {item.pais} ({item.direccion_exacta})
+				</p>
+                
+                {item.horarios && (
+                    <p style="margin-bottom: 5px; font-size: 0.95rem;">
+                        <strong>🕒 Horarios:</strong> {item.horarios}
+                    </p>
+                )}
+
+				<div style="display: flex; gap: 10px; margin-top: 12px; font-size: 0.9rem; align-items: center;">
+					<span style="background: #eee; padding: 3px 8px; border-radius: 4px;">
+						Contacto: <strong>{item.contacto}</strong>
+					</span>
+				</div>
+
+				<!-- Botón owner: se muestra via JS -->
+				<div class="owner-actions" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color);">
+					<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+						<form method="POST" style="flex: 1;">
+							<input type="hidden" name="action" value="desactivar_centro" />
+							<input type="hidden" name="id" value={item.id} />
+							<input type="hidden" name="token_edicion" value={item.token_edicion} />
+							<button type="submit" style="width: 100%; padding: 8px; background: #b91c1c; color: white; font-size: 0.85rem;">🚫 Ya no recibe insumos (Inactivar)</button>
+						</form>
+					</div>
+				</div>
+
+				<p style="margin-top: 10px; font-size: 0.8rem; color: #777;">
+					Publicado el {new Date(item.creado_el).toLocaleDateString('es-VE', { hour: '2-digit', minute:'2-digit' })}
+				</p>
+			</div>
+		))}
+	</div>
+
+	<!-- Credenciales de Supabase en un contenedor oculto para uso del script del cliente -->
+	<div id="credentials-holder" data-url={import.meta.env.SUPABASE_URL} data-key={import.meta.env.SUPABASE_ANON_KEY} data-nuevo-token={nuevoToken} style="display: none;"></div>
+
+	<script>
+	  import { compressAndUploadImage } from '../lib/clientStorage';
+
+	  const holder = document.getElementById('credentials-holder');
+	  const supabaseUrl = holder?.getAttribute('data-url') || '';
+	  const supabaseAnonKey = holder?.getAttribute('data-key') || '';
+
+	  // Geolocalización
+	  const btnGps = document.getElementById('btn-gps');
+	  const gpsStatus = document.getElementById('gps-status');
+	  const inputLat = document.getElementById('input-lat') as HTMLInputElement;
+	  const inputLon = document.getElementById('input-lon') as HTMLInputElement;
+
+	  if (btnGps && gpsStatus && inputLat && inputLon) {
+	    btnGps.addEventListener('click', () => {
+	      gpsStatus.innerText = '⏳ Obteniendo GPS...';
+	      if (!navigator.geolocation) {
+	        gpsStatus.innerText = '❌ La geolocalización no está soportada en este navegador';
+	        return;
+	      }
+	      navigator.geolocation.getCurrentPosition(
+	        (position) => {
+	          const lat = position.coords.latitude;
+	          const lon = position.coords.longitude;
+	          inputLat.value = lat.toFixed(6);
+	          inputLon.value = lon.toFixed(6);
+	          gpsStatus.innerHTML = `✅ Ubicación detectada con éxito.`;
+	          gpsStatus.style.color = '#166534';
+	        },
+	        (error) => {
+	          gpsStatus.innerText = `❌ Error: ${error.message}. Por favor actívalo manualmente.`;
+	          gpsStatus.style.color = '#b91c1c';
+	        },
+	        { enableHighAccuracy: true, timeout: 8000 }
+	      );
+	    });
+	  }
+
+	  // Compresión y carga de imágenes
+	  const imageFile = document.getElementById('image-file') as HTMLInputElement;
+	  const inputImagenUrl = document.getElementById('input-imagen-url') as HTMLInputElement;
+	  const uploadStatus = document.getElementById('upload-status');
+	  const submitBtn = document.querySelector('form button[type="submit"]') as HTMLButtonElement;
+
+	  if (imageFile && inputImagenUrl && uploadStatus && submitBtn) {
+	    imageFile.addEventListener('change', async () => {
+	      const file = imageFile.files?.[0];
+	      if (!file) return;
+
+	      try {
+	        uploadStatus.innerText = '⏳ Optimizando foto en tu dispositivo...';
+	        uploadStatus.style.color = '#555';
+	        submitBtn.disabled = true;
+	        submitBtn.style.opacity = '0.5';
+
+	        const publicUrl = await compressAndUploadImage(file, supabaseUrl, supabaseAnonKey);
+	        
+	        inputImagenUrl.value = publicUrl;
+	        uploadStatus.innerText = '✅ Foto subida y optimizada (~100KB) con éxito.';
+	        uploadStatus.style.color = '#166534';
+	      } catch (err: any) {
+	        console.error(err);
+	        uploadStatus.innerText = `❌ Error al subir la imagen: ${err.message || 'Error desconocido'}`;
+	        uploadStatus.style.color = '#b91c1c';
+	        imageFile.value = '';
+	      } finally {
+	        submitBtn.disabled = false;
+	        submitBtn.style.opacity = '1';
+	      }
+	    });
+	  }
+	</script>
+	<script>
+		document.addEventListener("DOMContentLoaded", () => {
+			// Autocompletar coordenadas aproximadas si el usuario no usa GPS
+			const paisInput = document.getElementById("pais-input") as HTMLInputElement;
+			const ciudadInput = document.getElementById("ciudad-input") as HTMLInputElement;
+            const inputLat = document.getElementById("input-lat") as HTMLInputElement;
+            const inputLon = document.getElementById("input-lon") as HTMLInputElement;
+
+            const handleGeocode = () => {
+                if (paisInput && ciudadInput && paisInput.value && ciudadInput.value && inputLat && inputLon && !inputLat.value) {
+                    // Llamar a geocoding simple
+                    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(ciudadInput.value + ", " + paisInput.value)}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data && data.length > 0 && !inputLat.value) {
+                                inputLat.value = data[0].lat;
+                                inputLon.value = data[0].lon;
+                            }
+                        }).catch(() => {});
+                }
+            };
+
+            if(paisInput) paisInput.addEventListener("blur", handleGeocode);
+            if(ciudadInput) ciudadInput.addEventListener("blur", handleGeocode);
+		});
+	</script>
+
+	<!-- localStorage: guardar token y detectar posts propios -->
+	<script is:inline>
+		document.addEventListener("DOMContentLoaded", function() {
+			var holder = document.getElementById("credentials-holder");
+			var nuevoToken = holder ? holder.getAttribute("data-nuevo-token") : "";
+
+			if (nuevoToken) {
+				try {
+					var tokens = JSON.parse(localStorage.getItem("mis_reportes_centros") || "[]");
+					tokens.push(nuevoToken);
+					localStorage.setItem("mis_reportes_centros", JSON.stringify(tokens));
+				} catch(e) {}
+			}
+
+			try {
+				var misTokens = JSON.parse(localStorage.getItem("mis_reportes_centros") || "[]");
+				if (misTokens.length > 0) {
+					var cards = document.querySelectorAll(".card[data-token]");
+					cards.forEach(function(card) {
+						var cardToken = card.getAttribute("data-token");
+						if (cardToken && misTokens.indexOf(cardToken) !== -1) {
+							var ownerActions = card.querySelector(".owner-actions");
+							if (ownerActions) ownerActions.style.display = "block";
+						}
+					});
+				}
+			} catch(e) {}
+		});
+	</script>
+</Layout>
