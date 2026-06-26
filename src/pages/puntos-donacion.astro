@@ -216,11 +216,9 @@ const markerItems = (centros || []).map(item => ({
 		</div>
 	</form>
 
-    {markerItems.length > 0 && (
-        <div style="margin-bottom: 25px;">
-            <MapaInteractivo items={markerItems} mapId="mapa-centros" />
-        </div>
-    )}
+	<div style="margin-bottom: 25px;">
+		<MapaInteractivo items={markerItems} mapId="mapa-centros" />
+	</div>
 
 	<div class="lista">
 		{fetchError && <p>Error al cargar los datos: {fetchError.message}</p>}
