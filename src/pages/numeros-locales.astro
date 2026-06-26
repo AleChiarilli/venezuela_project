@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
 import { ESTADOS, MUNICIPIOS_POR_ESTADO } from "../data/venezuela";
+import { normalizarBusqueda } from '../utils/stringUtils';
 
 let mensaje = '';
 let mensajeTipo = ''; // 'success' o 'error'
@@ -74,11 +75,13 @@ let query = supabase
   .order('creado_el', { ascending: false });
 
 if (buscar) {
-  query = query.or(`descripcion.ilike.%${buscar}%,numero.ilike.%${buscar}%`);
+  const bNorm = normalizarBusqueda(buscar);
+  query = query.or(`busqueda_general.ilike.%${bNorm}%`);
 }
 
 if (ubicacion) {
-  query = query.or(`estado.ilike.%${ubicacion}%,ciudad_municipio.ilike.%${ubicacion}%`);
+  const uNorm = normalizarBusqueda(ubicacion);
+  query = query.or(`busqueda_ubicacion.ilike.%${uNorm}%`);
 }
 
 const { data: numeros, error: fetchError } = await query;

@@ -3,6 +3,7 @@ import Layout from "../layouts/Layout.astro";
 import { supabase, optimizarImagen } from "../lib/supabase";
 import MapaInteractivo from "../components/MapaInteractivo.astro";
 import { ESTADOS, COORDENADAS_ESTADOS } from "../data/venezuela";
+import { normalizarBusqueda } from '../utils/stringUtils';
 
 let mensaje = "";
 let mensajeTipo = ""; // 'success' o 'error'
@@ -140,15 +141,13 @@ if (filtroEstado === "DESAPARECIDO") {
 }
 
 if (buscar) {
-	query = query.or(
-		`nombre_completo.ilike.%${buscar}%,vestimenta_rasgos.ilike.%${buscar}%`,
-	);
+	const bNorm = normalizarBusqueda(buscar);
+	query = query.or(`busqueda_general.ilike.%${bNorm}%`);
 }
 
 if (ubicacion) {
-	query = query.or(
-		`ciudad_municipio.ilike.%${ubicacion}%,estado.ilike.%${ubicacion}%`,
-	);
+	const uNorm = normalizarBusqueda(ubicacion);
+	query = query.or(`busqueda_ubicacion.ilike.%${uNorm}%`);
 }
 
 const { data: personas, error: fetchError } = await query;

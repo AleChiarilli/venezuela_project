@@ -83,3 +83,79 @@ ON public.numeros_emergencia FOR INSERT TO public WITH CHECK (true);
 
 CREATE POLICY "Permitir actualización con token numeros"
 ON public.numeros_emergencia FOR UPDATE TO public USING (token_edicion IS NOT NULL);
+
+-- =========================================================================
+-- MIGRACIÓN PARA BÚSQUEDA INSENSIBLE A ACENTOS (ACCENT-INSENSITIVE)
+-- Ejecuta este script en tu Editor SQL de Supabase
+-- =========================================================================
+
+-- 1. Habilitar la extensión oficial de PostgreSQL para quitar acentos
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
+-- 2. Crear una función INMUTABLE que quite los acentos y pase a minúsculas.
+-- Tiene que ser inmutable para poder usarla en columnas generadas.
+CREATE OR REPLACE FUNCTION normalizar_busqueda(texto text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE PARALLEL SAFE STRICT
+AS $$
+  -- Utilizamos public.unaccent explícitamente para asegurar compatibilidad
+  SELECT lower(public.unaccent('public.unaccent', COALESCE(texto, '')));
+$$;
+
+-- =========================================================================
+-- 3. Añadir columnas generadas a las tablas
+-- Estas columnas mantendrán la data sin acentos automáticamente.
+-- =========================================================================
+
+-- A. CENTROS DE ACOPIO
+ALTER TABLE public.centros_acopio 
+ADD COLUMN IF NOT EXISTS busqueda_ubicacion text 
+GENERATED ALWAYS AS (normalizar_busqueda(pais || ' ' || ciudad || ' ' || direccion_exacta)) STORED;
+
+ALTER TABLE public.centros_acopio 
+ADD COLUMN IF NOT EXISTS busqueda_general text 
+GENERATED ALWAYS AS (normalizar_busqueda(nombre_centro || ' ' || que_reciben)) STORED;
+
+CREATE INDEX IF NOT EXISTS idx_centros_busqueda_ub on public.centros_acopio(busqueda_ubicacion);
+CREATE INDEX IF NOT EXISTS idx_centros_busqueda_gen on public.centros_acopio(busqueda_general);
+
+-- B. SUMINISTROS DE AYUDA
+ALTER TABLE public.suministros_ayuda 
+ADD COLUMN IF NOT EXISTS busqueda_ubicacion text 
+GENERATED ALWAYS AS (normalizar_busqueda(estado || ' ' || ciudad_municipio || ' ' || direccion_referencia)) STORED;
+
+ALTER TABLE public.suministros_ayuda 
+ADD COLUMN IF NOT EXISTS busqueda_general text 
+GENERATED ALWAYS AS (normalizar_busqueda(titulo_item || ' ' || COALESCE(descripcion, ''))) STORED;
+
+-- C. REFUGIOS TEMPORALES
+ALTER TABLE public.refugios_temporales 
+ADD COLUMN IF NOT EXISTS busqueda_ubicacion text 
+GENERATED ALWAYS AS (normalizar_busqueda(estado || ' ' || ciudad_municipio || ' ' || direccion_referencia)) STORED;
+
+ALTER TABLE public.refugios_temporales 
+ADD COLUMN IF NOT EXISTS busqueda_general text 
+GENERATED ALWAYS AS (normalizar_busqueda(descripcion)) STORED;
+
+-- D. PERSONAS BUSCADAS
+ALTER TABLE public.personas_busquedas 
+ADD COLUMN IF NOT EXISTS busqueda_ubicacion text 
+GENERATED ALWAYS AS (normalizar_busqueda(estado || ' ' || ciudad_municipio || ' ' || direccion_referencia)) STORED;
+
+ALTER TABLE public.personas_busquedas 
+ADD COLUMN IF NOT EXISTS busqueda_general text 
+GENERATED ALWAYS AS (normalizar_busqueda(nombre_completo || ' ' || COALESCE(vestimenta_rasgos, ''))) STORED;
+
+-- E. NÚMEROS DE EMERGENCIA
+ALTER TABLE public.numeros_emergencia 
+ADD COLUMN IF NOT EXISTS busqueda_ubicacion text 
+GENERATED ALWAYS AS (normalizar_busqueda(estado || ' ' || ciudad_municipio)) STORED;
+
+ALTER TABLE public.numeros_emergencia 
+ADD COLUMN IF NOT EXISTS busqueda_general text 
+GENERATED ALWAYS AS (normalizar_busqueda(descripcion || ' ' || numero)) STORED;
+
+-- =========================================================================
+-- FIN DE LA MIGRACIÓN
+-- =========================================================================

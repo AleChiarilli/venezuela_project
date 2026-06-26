@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import { supabase, optimizarImagen } from '../lib/supabase';
 import MapaInteractivo from '../components/MapaInteractivo.astro';
 import { PAISES_MUNDO } from "../data/paises";
+import { normalizarBusqueda } from '../utils/stringUtils';
 
 let mensaje = '';
 let mensajeTipo = ''; // 'success' o 'error'
@@ -116,11 +117,13 @@ let query = supabase
   .order('creado_el', { ascending: false });
 
 if (buscar) {
-  query = query.or(`que_reciben.ilike.%${buscar}%,nombre_centro.ilike.%${buscar}%`);
+  const bNorm = normalizarBusqueda(buscar);
+  query = query.or(`busqueda_general.ilike.%${bNorm}%`);
 }
 
 if (ubicacion) {
-  query = query.or(`pais.ilike.%${ubicacion}%,ciudad.ilike.%${ubicacion}%`);
+  const uNorm = normalizarBusqueda(ubicacion);
+  query = query.or(`busqueda_ubicacion.ilike.%${uNorm}%`);
 }
 
 const { data: centros, error: fetchError } = await query;

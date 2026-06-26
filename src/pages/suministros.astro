@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import { supabase, optimizarImagen } from '../lib/supabase';
 import MapaInteractivo from '../components/MapaInteractivo.astro';
 import { ESTADOS, COORDENADAS_ESTADOS } from "../data/venezuela";
+import { normalizarBusqueda } from '../utils/stringUtils';
 
 let mensaje = '';
 let mensajeTipo = ''; // 'success' o 'error'
@@ -129,11 +130,13 @@ let query = supabase
   .order('creado_el', { ascending: false });
 
 if (buscar) {
-  query = query.or(`titulo_item.ilike.%${buscar}%,descripcion.ilike.%${buscar}%`);
+  const bNorm = normalizarBusqueda(buscar);
+  query = query.or(`busqueda_general.ilike.%${bNorm}%`);
 }
 
 if (ubicacion) {
-  query = query.or(`ciudad_municipio.ilike.%${ubicacion}%,estado.ilike.%${ubicacion}%`);
+  const uNorm = normalizarBusqueda(ubicacion);
+  query = query.or(`busqueda_ubicacion.ilike.%${uNorm}%`);
 }
 
 if (filtroTipo) {
