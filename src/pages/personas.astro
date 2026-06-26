@@ -41,13 +41,39 @@ if (Astro.request.method === "POST") {
 			const estado_vital = data.get("estado_vital")?.toString() || "DESAPARECIDO";
 
 			const latStr = data.get("latitud")?.toString();
-			const latitud = latStr ? parseFloat(latStr) : null;
+			let latitud = latStr ? parseFloat(latStr) : null;
 			const lonStr = data.get("longitud")?.toString();
-			const longitud = lonStr ? parseFloat(lonStr) : null;
+			let longitud = lonStr ? parseFloat(lonStr) : null;
 			const imagen_url = data.get("imagen_url")?.toString().trim() || null;
 
 			if (!nombre_completo || !estado || !ciudad_municipio || !contacto_reportante) {
 				throw new Error("Faltan campos obligatorios");
+			}
+
+			// GEOCODIFICACIÓN SERVER-SIDE
+			if ((!latitud || !longitud || isNaN(latitud)) && direccion_referencia && ciudad_municipio && estado) {
+				try {
+					const queryGeocode = `${direccion_referencia}, ${ciudad_municipio}, ${estado}, Venezuela`;
+					const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryGeocode)}&limit=1`, {
+						headers: { 'User-Agent': 'RedSolidaridadVenezuela/1.0' }
+					});
+					const geoData = await res.json();
+					if (geoData && geoData.length > 0) {
+						latitud = parseFloat(geoData[0].lat);
+						longitud = parseFloat(geoData[0].lon);
+					} else {
+						const resFallback = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(ciudad_municipio + ', ' + estado + ', Venezuela')}&limit=1`, {
+							headers: { 'User-Agent': 'RedSolidaridadVenezuela/1.0' }
+						});
+						const geoFallback = await resFallback.json();
+						if (geoFallback && geoFallback.length > 0) {
+							latitud = parseFloat(geoFallback[0].lat);
+							longitud = parseFloat(geoFallback[0].lon);
+						}
+					}
+				} catch (e) {
+					console.error("Error en geocodificación server-side:", e);
+				}
 			}
 
 			// Generar token secreto de edición
@@ -65,8 +91,8 @@ if (Astro.request.method === "POST") {
 					contacto_reportante,
 					estado_vital,
 					estatus_actual: "ACTIVO",
-					latitud: isNaN(latitud as any) ? null : latitud,
-					longitud: isNaN(longitud as any) ? null : longitud,
+					latitud: latitud,
+					longitud: longitud,
 					imagen_url,
 					token_edicion
 				},
