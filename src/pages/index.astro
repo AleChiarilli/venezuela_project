@@ -11,7 +11,7 @@ import Layout from '../layouts/Layout.astro';
 	</div>
 
 	<div class="action-grid">
-		<a href="/personas" class="card">
+		<a href="/personas" class="card card-blue">
 			<div class="card-header">
 				<span class="icon" aria-hidden="true">🔍</span>
 				<h2>Personas</h2>
@@ -20,7 +20,7 @@ import Layout from '../layouts/Layout.astro';
 			<span class="btn-link">Entrar aquí →</span>
 		</a>
 
-		<a href="/suministros" class="card">
+		<a href="/suministros" class="card card-green">
 			<div class="card-header">
 				<span class="icon" aria-hidden="true">📦</span>
 				<h2>Ayuda y Comida</h2>
@@ -29,7 +29,7 @@ import Layout from '../layouts/Layout.astro';
 			<span class="btn-link">Entrar aquí →</span>
 		</a>
 
-		<a href="/refugios" class="card">
+		<a href="/refugios" class="card card-yellow">
 			<div class="card-header">
 				<span class="icon" aria-hidden="true">🏠</span>
 				<h2>Refugios</h2>
@@ -38,7 +38,7 @@ import Layout from '../layouts/Layout.astro';
 			<span class="btn-link">Entrar aquí →</span>
 		</a>
 
-		<a href="/puntos-donacion" class="card">
+		<a href="/puntos-donacion" class="card card-purple">
 			<div class="card-header">
 				<span class="icon" aria-hidden="true">🌍</span>
 				<h2>Puntos de Donación</h2>
@@ -64,9 +64,15 @@ import Layout from '../layouts/Layout.astro';
 	}
 
 	.action-grid {
-		display: flex;
-		flex-direction: column;
-		gap: 16px;
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 20px;
+	}
+
+	@media (min-width: 600px) {
+		.action-grid {
+			grid-template-columns: repeat(2, 1fr);
+		}
 	}
 
 	.card-header {
@@ -101,4 +107,45 @@ import Layout from '../layouts/Layout.astro';
 	.card:hover .btn-link, .card:active .btn-link {
 		text-decoration: underline;
 	}
+
+	/* Colores de las tarjetas */
+	.card-blue {
+		background-color: #f0f7ff;
+		border-color: #cce0ff;
+	}
+	.card-blue:hover, .card-blue:active {
+		border-color: var(--primary-blue);
+		background-color: #e6f0ff;
+	}
+	.card-blue h2, .card-blue .btn-link { color: var(--primary-blue); }
+
+	.card-green {
+		background-color: #f0fdf4;
+		border-color: #bbf7d0;
+	}
+	.card-green:hover, .card-green:active {
+		border-color: #16a34a;
+		background-color: #dcfce3;
+	}
+	.card-green h2, .card-green .btn-link { color: #16a34a; }
+
+	.card-yellow {
+		background-color: #fffbeb;
+		border-color: #fde68a;
+	}
+	.card-yellow:hover, .card-yellow:active {
+		border-color: #d97706;
+		background-color: #fef3c7;
+	}
+	.card-yellow h2, .card-yellow .btn-link { color: #b45309; }
+
+	.card-purple {
+		background-color: #fdf4ff;
+		border-color: #e9d5ff;
+	}
+	.card-purple:hover, .card-purple:active {
+		border-color: #9333ea;
+		background-color: #f3e8ff;
+	}
+	.card-purple h2, .card-purple .btn-link { color: #7e22ce; }
 </style>
