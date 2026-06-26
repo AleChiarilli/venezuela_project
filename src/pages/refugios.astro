@@ -75,6 +75,7 @@ if (Astro.request.method === 'POST') {
           ciudad_municipio,
           direccion_referencia,
           contacto,
+          resuelto: false,
           latitud: isNaN(latitud as any) ? null : latitud,
           longitud: isNaN(longitud as any) ? null : longitud,
           imagen_url,
