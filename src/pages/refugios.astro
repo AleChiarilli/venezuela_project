@@ -18,8 +18,9 @@ if (Astro.request.method === 'POST') {
       const id = data.get('id')?.toString();
       const token_edicion = data.get('token_edicion')?.toString();
       if (!id || !token_edicion) throw new Error('Datos inválidos');
-      const { error } = await supabase.from('refugios_temporales').update({ resuelto: true }).eq('id', id).eq('token_edicion', token_edicion);
+      const { data, error } = await supabase.from('refugios_temporales').update({ resuelto: true }).eq('id', id).eq('token_edicion', token_edicion).select('id');
       if (error) throw new Error('No se pudo resolver el refugio.');
+      if (!data || data.length === 0) throw new Error('No autorizado o registro no encontrado. (Falta política UPDATE en Supabase).');
       mensaje = '¡Refugio marcado como lleno/resuelto!';
       mensajeTipo = 'success';
     } else if (action === 'actualizar_capacidad') {
@@ -27,8 +28,9 @@ if (Astro.request.method === 'POST') {
       const token_edicion = data.get('token_edicion')?.toString();
       const nueva_capacidad = parseInt(data.get('nueva_capacidad')?.toString() || '0', 10);
       if (!id || !token_edicion || nueva_capacidad < 0) throw new Error('Datos inválidos');
-      const { error } = await supabase.from('refugios_temporales').update({ capacidad_personas: nueva_capacidad }).eq('id', id).eq('token_edicion', token_edicion);
+      const { data, error } = await supabase.from('refugios_temporales').update({ capacidad_personas: nueva_capacidad }).eq('id', id).eq('token_edicion', token_edicion).select('id');
       if (error) throw new Error('No se pudo actualizar la capacidad.');
+      if (!data || data.length === 0) throw new Error('No autorizado o registro no encontrado. (Falta política UPDATE en Supabase).');
       mensaje = `¡Capacidad actualizada a ${nueva_capacidad} persona(s)!`;
       mensajeTipo = 'success';
     } else {
