@@ -18,9 +18,9 @@ if (Astro.request.method === 'POST') {
       const id = data.get('id')?.toString();
       const token_edicion = data.get('token_edicion')?.toString();
       if (!id || !token_edicion) throw new Error('Datos inválidos');
-      const { data, error } = await supabase.from('suministros_ayuda').update({ resuelto: true }).eq('id', id).eq('token_edicion', token_edicion).select('id');
+      const { data: updateData, error } = await supabase.from('suministros_ayuda').update({ resuelto: true }).eq('id', id).eq('token_edicion', token_edicion).select('id');
       if (error) throw new Error('No se pudo resolver el anuncio.');
-      if (!data || data.length === 0) throw new Error('No autorizado o registro no encontrado. (Es posible que falte la política UPDATE en Supabase).');
+      if (!updateData || updateData.length === 0) throw new Error('No autorizado o registro no encontrado. (Es posible que falte la política UPDATE en Supabase).');
       mensaje = '¡Anuncio marcado como resuelto! Ya no aparecerá en la lista activa.';
       mensajeTipo = 'success';
     } else {

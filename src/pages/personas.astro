@@ -20,7 +20,7 @@ if (Astro.request.method === "POST") {
 
 			if (!id || !token_edicion) throw new Error("Datos inválidos para actualizar");
 
-			const { data, error } = await supabase
+			const { data: updateData, error } = await supabase
 				.from("personas_busquedas")
 				.update({ estado_vital: "A SALVO", estatus_actual: "RESUELTO" })
 				.eq("id", id)
@@ -28,7 +28,7 @@ if (Astro.request.method === "POST") {
 				.select("id");
 			
 			if (error) throw new Error("No se pudo actualizar el estado en la base de datos.");
-			if (!data || data.length === 0) throw new Error("No autorizado o registro no encontrado. (Es posible que falte la política UPDATE en Supabase).");
+			if (!updateData || updateData.length === 0) throw new Error("No autorizado o registro no encontrado. (Es posible que falte la política UPDATE en Supabase).");
 			
 			mensaje = "¡Persona marcada como localizada! Gracias por avisar. Su ficha se moverá a la sección de localizados.";
 			mensajeTipo = "success";
