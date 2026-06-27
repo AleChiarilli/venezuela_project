@@ -4,8 +4,8 @@ import Layout from '../layouts/Layout.astro';
 
 <Layout title="Inicio">
 	<div class="header-intro">
-		<h1>Red de Solidaridad Activa</h1>
-		<p class="lead">
+		<h1 data-i18n="index.title">Red de Solidaridad Activa</h1>
+		<p class="lead" data-i18n="index.lead">
 			En momentos difíciles, nuestra mayor fuerza somos nosotros mismos. Esta plataforma te permite pedir ayuda urgente o extender tu mano a quien lo necesita. Selecciona una opción para comenzar.
 		</p>
 	</div>
@@ -14,37 +14,37 @@ import Layout from '../layouts/Layout.astro';
 		<a href="/personas" class="card card-blue">
 			<div class="card-header">
 				<span class="icon" aria-hidden="true">🔍</span>
-				<h2>Personas</h2>
+				<h2 data-i18n="index.personas.title">Personas</h2>
 			</div>
-			<p>Reporta a un familiar desaparecido o informa si has encontrado a alguien.</p>
-			<span class="btn-link">Entrar aquí →</span>
+			<p data-i18n="index.personas.desc">Reporta a un familiar desaparecido o informa si has encontrado a alguien.</p>
+			<span class="btn-link" data-i18n="index.personas.link">Entrar aquí →</span>
 		</a>
 
 		<a href="/suministros" class="card card-green">
 			<div class="card-header">
 				<span class="icon" aria-hidden="true">📦</span>
-				<h2>Ayuda y Comida</h2>
+				<h2 data-i18n="index.suministros.title">Ayuda y Comida</h2>
 			</div>
-			<p>Ofrece o solicita comida, agua, medicamentos, generadores eléctricos, transporte y otros apoyos vecinales.</p>
-			<span class="btn-link">Entrar aquí →</span>
+			<p data-i18n="index.suministros.desc">Ofrece o solicita comida, agua, medicamentos, generadores eléctricos, transporte y otros apoyos vecinales.</p>
+			<span class="btn-link" data-i18n="index.suministros.link">Entrar aquí →</span>
 		</a>
 
 		<a href="/refugios" class="card card-yellow">
 			<div class="card-header">
 				<span class="icon" aria-hidden="true">🏠</span>
-				<h2>Refugios</h2>
+				<h2 data-i18n="index.refugios.title">Refugios</h2>
 			</div>
-			<p>Encuentra un lugar seguro para dormir o reporta si tienes un espacio disponible para alojar a otros.</p>
-			<span class="btn-link">Entrar aquí →</span>
+			<p data-i18n="index.refugios.desc">Encuentra un lugar seguro para dormir o reporta si tienes un espacio disponible para alojar a otros.</p>
+			<span class="btn-link" data-i18n="index.refugios.link">Entrar aquí →</span>
 		</a>
 
 		<a href="/puntos-donacion" class="card card-purple">
 			<div class="card-header">
 				<span class="icon" aria-hidden="true">🌍</span>
-				<h2>Puntos de Donación</h2>
+				<h2 data-i18n="index.donaciones.title">Puntos de Donación</h2>
 			</div>
-			<p>Encuentra o registra puntos de recolección de ayuda humanitaria e insumos alrededor del mundo.</p>
-			<span class="btn-link">Entrar aquí →</span>
+			<p data-i18n="index.donaciones.desc">Encuentra o registra puntos de recolección de ayuda humanitaria e insumos alrededor del mundo.</p>
+			<span class="btn-link" data-i18n="index.donaciones.link">Entrar aquí →</span>
 		</a>
 	</div>
 </Layout>

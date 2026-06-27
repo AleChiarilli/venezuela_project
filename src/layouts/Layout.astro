@@ -34,11 +34,27 @@ const { title } = Astro.props;
 					<span><strong style="color: #D99000;">Apoyo</strong><span style="color: #00247D; font-weight: 800;">Vz</span><span style="color: #CF142B; font-weight: 800;">la</span></span>
 				</a>
 				<nav>
-					<a href="/personas">Personas</a>
-					<a href="/suministros">Ayuda y Comida</a>
-					<a href="/refugios">Refugios</a>
-					<a href="/puntos-donacion">Donaciones</a>
+					<a href="/personas" data-i18n="nav.personas">Personas</a>
+					<a href="/suministros" data-i18n="nav.suministros">Ayuda y Comida</a>
+					<a href="/refugios" data-i18n="nav.refugios">Refugios</a>
+					<a href="/puntos-donacion" data-i18n="nav.donaciones">Donaciones</a>
 				</nav>
+				<div class="header-actions">
+					<div class="lang-toggle" id="lang-toggle" title="Cambiar idioma / Switch language">
+						<span class="lang-option active" data-lang="es">ES</span>
+						<span class="lang-option" data-lang="en">EN</span>
+					</div>
+					<a
+						href="https://donate.stripe.com/8x27sLbn06OwfTs8FzcAo0W"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="btn-donate"
+						id="donate-btn"
+						data-i18n="nav.donar"
+					>
+						❤️ Donar para Venezuela
+					</a>
+				</div>
 			</div>
 		</header>
 
@@ -46,16 +62,16 @@ const { title } = Astro.props;
 			<div class="emergency-banner">
 				<div class="emergency-banner-title">
 					<span style="display:inline-block; width:8px; height:8px; background:red; border-radius:50%; margin-right:5px; animation: pulse 2s infinite;"></span>
-					Teléfonos de emergencia (Nacionales)
+					<span data-i18n="emergency.title">Teléfonos de emergencia (Nacionales)</span>
 				</div>
 				<div class="emergency-numbers">
 					<a href="tel:911" class="emergency-number"><strong>911</strong><span>General / Movistar</span></a>
-					<a href="tel:171" class="emergency-number"><strong>171</strong><span>Fijo CANTV</span></a>
+					<a href="tel:171" class="emergency-number"><strong>171</strong><span data-i18n="emergency.cantv">Fijo CANTV</span></a>
 					<a href="tel:112" class="emergency-number"><strong>112</strong><span>Digitel</span></a>
 					<a href="tel:*1" class="emergency-number"><strong>*1</strong><span>Movilnet</span></a>
 				</div>
 				<div style="margin-top: 15px; text-align: right;">
-					<a href="/numeros-locales" style="font-size: 0.9rem; color: #c53030; font-weight: 600; text-decoration: none;">🔍 Buscar números locales o ➕ Agregar nuevo →</a>
+					<a href="/numeros-locales" style="font-size: 0.9rem; color: #c53030; font-weight: 600; text-decoration: none;" data-i18n="emergency.buscar">🔍 Buscar números locales o ➕ Agregar nuevo →</a>
 				</div>
 			</div>
 
@@ -65,14 +81,14 @@ const { title } = Astro.props;
 
 		<footer>
 			<div class="container text-center" style="max-width: 700px;">
-				<p style="font-size: 0.9rem; color: #444; margin-bottom: 10px; font-weight: 500;">
+				<p style="font-size: 0.9rem; color: #444; margin-bottom: 10px; font-weight: 500;" data-i18n="footer.tagline">
 					⚡ Diseñado para emergencias · Carga rápida · Bajo consumo de datos
 				</p>
-				<p style="font-size: 0.82rem; color: #666; margin-bottom: 12px; line-height: 1.6;">
+				<p style="font-size: 0.82rem; color: #666; margin-bottom: 12px; line-height: 1.6;" data-i18n-html="footer.disclaimer">
 					Herramienta cívica y gratuita. La información es reportada por la comunidad — te recomendamos confirmar por teléfono o mensaje antes de acudir a cualquier lugar.
 					Ideas o mejoras: <a href="mailto:hola@theeclatmethod.com" style="color: var(--primary-blue); font-weight: 600;">hola@theeclatmethod.com</a>
 				</p>
-				<p style="font-size: 0.8rem; color: #888;">
+				<p style="font-size: 0.8rem; color: #888;" data-i18n-html="footer.opensource">
 					🌍 Código abierto y transparente ·
 					<a href="https://github.com/AleChiarilli/venezuela_project" target="_blank" rel="noopener noreferrer" style="color: var(--primary-blue); font-weight: 600;">Ver repositorio en GitHub</a>
 				</p>
@@ -86,7 +102,126 @@ const { title } = Astro.props;
 		</div>
 
 		<script is:inline>
+			// ===== i18n Translation System =====
+			var I18N = {
+				en: {
+					// Nav
+					"nav.personas": "People",
+					"nav.suministros": "Aid & Food",
+					"nav.refugios": "Shelters",
+					"nav.donaciones": "Donations",
+					"nav.donar": "❤️ Donate for Venezuela",
+					// Emergency banner
+					"emergency.title": "Emergency phones (National)",
+					"emergency.cantv": "Landline CANTV",
+					"emergency.buscar": "🔍 Search local numbers or ➕ Add new →",
+					// Footer
+					"footer.tagline": "⚡ Built for emergencies · Fast loading · Low data usage",
+					"footer.disclaimer": 'Free civic tool. Information is community-reported — we recommend confirming by phone or message before going to any location. Ideas or improvements: <a href="mailto:hola@theeclatmethod.com" style="color: var(--primary-blue); font-weight: 600;">hola@theeclatmethod.com</a>',
+					"footer.opensource": '🌍 Open source and transparent · <a href="https://github.com/AleChiarilli/venezuela_project" target="_blank" rel="noopener noreferrer" style="color: var(--primary-blue); font-weight: 600;">View repository on GitHub</a>',
+					// Index page
+					"index.title": "Active Solidarity Network",
+					"index.lead": "In difficult times, our greatest strength is each other. This platform lets you request urgent help or lend a hand to those in need. Select an option to get started.",
+					"index.personas.title": "People",
+					"index.personas.desc": "Report a missing family member or let others know if you've found someone.",
+					"index.personas.link": "Go here →",
+					"index.suministros.title": "Aid & Food",
+					"index.suministros.desc": "Offer or request food, water, medicine, generators, transport and other neighborhood support.",
+					"index.suministros.link": "Go here →",
+					"index.refugios.title": "Shelters",
+					"index.refugios.desc": "Find a safe place to sleep or report if you have space available to shelter others.",
+					"index.refugios.link": "Go here →",
+					"index.donaciones.title": "Donation Points",
+					"index.donaciones.desc": "Find or register humanitarian aid collection points around the world.",
+					"index.donaciones.link": "Go here →",
+					// Personas page
+					"personas.title": "Search & Reunion",
+					"personas.subtitle": "If you can't reach a loved one or if you're safe and want to let them know, please fill out a report. Every detail counts to reunite families. All fields marked with * are required.",
+					// Suministros page
+					"suministros.title": "Aid & Food",
+					"suministros.subtitle": "Solidarity keeps us afloat. Do you have extra water or food? Can you offer transport, medical assistance, or lend a generator? Offer your help — your time and resources are worth gold. All fields with * are required.",
+					// Refugios page
+					"refugios.title": "Shelters & Safe Housing",
+					"refugios.subtitle": "No Venezuelan should spend the night out in the open. Do you have a spare room or a safe roof? Help someone who has nowhere to stay tonight. Your hospitality can save lives. All fields with * are required.",
+					// Puntos donacion page
+					"donacion.title": "National & International Donation Points",
+					"donacion.subtitle": "Find or register collection points anywhere in the world. Help channel supplies and donations to those who need them most in Venezuela. All fields with * are required."
+				},
+				es: {
+					// Nav
+					"nav.personas": "Personas",
+					"nav.suministros": "Ayuda y Comida",
+					"nav.refugios": "Refugios",
+					"nav.donaciones": "Donaciones",
+					"nav.donar": "❤️ Donar para Venezuela",
+					// Emergency banner
+					"emergency.title": "Teléfonos de emergencia (Nacionales)",
+					"emergency.cantv": "Fijo CANTV",
+					"emergency.buscar": "🔍 Buscar números locales o ➕ Agregar nuevo →",
+					// Footer
+					"footer.tagline": "⚡ Diseñado para emergencias · Carga rápida · Bajo consumo de datos",
+					"footer.disclaimer": 'Herramienta cívica y gratuita. La información es reportada por la comunidad — te recomendamos confirmar por teléfono o mensaje antes de acudir a cualquier lugar. Ideas o mejoras: <a href="mailto:hola@theeclatmethod.com" style="color: var(--primary-blue); font-weight: 600;">hola@theeclatmethod.com</a>',
+					"footer.opensource": '🌍 Código abierto y transparente · <a href="https://github.com/AleChiarilli/venezuela_project" target="_blank" rel="noopener noreferrer" style="color: var(--primary-blue); font-weight: 600;">Ver repositorio en GitHub</a>',
+					// Index page
+					"index.title": "Red de Solidaridad Activa",
+					"index.lead": "En momentos difíciles, nuestra mayor fuerza somos nosotros mismos. Esta plataforma te permite pedir ayuda urgente o extender tu mano a quien lo necesita. Selecciona una opción para comenzar.",
+					"index.personas.title": "Personas",
+					"index.personas.desc": "Reporta a un familiar desaparecido o informa si has encontrado a alguien.",
+					"index.personas.link": "Entrar aquí →",
+					"index.suministros.title": "Ayuda y Comida",
+					"index.suministros.desc": "Ofrece o solicita comida, agua, medicamentos, generadores eléctricos, transporte y otros apoyos vecinales.",
+					"index.suministros.link": "Entrar aquí →",
+					"index.refugios.title": "Refugios",
+					"index.refugios.desc": "Encuentra un lugar seguro para dormir o reporta si tienes un espacio disponible para alojar a otros.",
+					"index.refugios.link": "Entrar aquí →",
+					"index.donaciones.title": "Puntos de Donación",
+					"index.donaciones.desc": "Encuentra o registra puntos de recolección de ayuda humanitaria e insumos alrededor del mundo.",
+					"index.donaciones.link": "Entrar aquí →",
+					// Personas page
+					"personas.title": "Búsqueda y Reencuentro",
+					"personas.subtitle": "Si no logras contactar a un ser querido o si estás a salvo y quieres avisarlo, por favor llena un reporte. Cada dato cuenta para unir familias. Todos los campos marcados con * son obligatorios.",
+					// Suministros page
+					"suministros.title": "Ayuda y Comida",
+					"suministros.subtitle": "La solidaridad nos mantiene a flote. ¿Tienes agua o comida extra? ¿Puedes ofrecer transporte, asistencia médica o prestar un generador eléctrico? Ofrece tu ayuda, tu tiempo y recursos valen oro. Todos los campos con * son obligatorios.",
+					// Refugios page
+					"refugios.title": "Refugios y Techo Seguro",
+					"refugios.subtitle": "Ningún venezolano debería pasar la noche a la intemperie. ¿Tienes una habitación desocupada o un techo seguro? Ayuda a alguien que no tenga dónde pasar la noche. Tu hospitalidad puede salvar vidas. Todos los campos con * son obligatorios.",
+					// Puntos donacion page
+					"donacion.title": "Puntos de Donación Nacionales e Internacionales",
+					"donacion.subtitle": "Encuentra o registra puntos de recolección en cualquier parte del mundo. Ayuda a canalizar los insumos y donaciones hacia quienes más lo necesitan en Venezuela. Todos los campos con * son obligatorios."
+				}
+			};
+
+			function applyLanguage(lang) {
+				var dict = I18N[lang];
+				if (!dict) return;
+
+				// Update text-only elements
+				document.querySelectorAll('[data-i18n]').forEach(function(el) {
+					var key = el.getAttribute('data-i18n');
+					if (dict[key]) el.textContent = dict[key];
+				});
+
+				// Update elements with HTML content (links inside text)
+				document.querySelectorAll('[data-i18n-html]').forEach(function(el) {
+					var key = el.getAttribute('data-i18n-html');
+					if (dict[key]) el.innerHTML = dict[key];
+				});
+
+				// Update <html lang>
+				document.documentElement.lang = lang;
+
+				// Update toggle UI
+				document.querySelectorAll('.lang-option').forEach(function(opt) {
+					opt.classList.toggle('active', opt.getAttribute('data-lang') === lang);
+				});
+
+				// Persist
+				try { localStorage.setItem('apoyovzla-lang', lang); } catch(e) {}
+			}
+
 			document.addEventListener("DOMContentLoaded", function() {
+				// Lightbox
 				var modal = document.getElementById("lightbox-modal");
 				var modalImg = document.getElementById("lightbox-img");
 				var closeBtn = document.querySelector(".lightbox-close");
@@ -110,6 +245,23 @@ const { title } = Astro.props;
 						document.body.style.overflow = "auto";
 					}
 				}
+
+				// Language toggle
+				var toggle = document.getElementById('lang-toggle');
+				if (toggle) {
+					toggle.addEventListener('click', function(e) {
+						var opt = e.target.closest('.lang-option');
+						if (!opt) return;
+						var lang = opt.getAttribute('data-lang');
+						applyLanguage(lang);
+					});
+				}
+
+				// Restore saved language
+				try {
+					var saved = localStorage.getItem('apoyovzla-lang');
+					if (saved && saved !== 'es') applyLanguage(saved);
+				} catch(e) {}
 			});
 		</script>
 	</body>
@@ -174,7 +326,7 @@ const { title } = Astro.props;
 	}
 	.logo strong { color: var(--primary-blue); }
 	
-	nav { display: flex; gap: 15px; flex-wrap: wrap; }
+	nav { display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
 	nav a { 
 		color: #555; 
 		text-decoration: none; 
@@ -182,6 +334,40 @@ const { title } = Astro.props;
 		font-weight: 500;
 	}
 	nav a:hover, nav a:active { color: var(--primary-blue); text-decoration: underline; }
+
+	/* Donate CTA Button */
+	.btn-donate {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		background: linear-gradient(135deg, #CF142B 0%, #e04040 50%, #D99000 100%);
+		color: #ffffff;
+		font-size: 0.95rem;
+		font-weight: 700;
+		padding: 10px 20px;
+		border-radius: 50px;
+		text-decoration: none;
+		box-shadow: 0 2px 8px rgba(207, 20, 43, 0.35), 0 0 0 0 rgba(207, 20, 43, 0.4);
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		animation: donate-pulse 2.5s ease-in-out infinite;
+		white-space: nowrap;
+		letter-spacing: 0.3px;
+		flex-shrink: 0;
+	}
+	.btn-donate:hover {
+		transform: translateY(-2px) scale(1.04);
+		box-shadow: 0 4px 16px rgba(207, 20, 43, 0.45);
+		animation: none;
+	}
+	.btn-donate:active {
+		transform: translateY(0) scale(0.98);
+		box-shadow: 0 1px 4px rgba(207, 20, 43, 0.3);
+	}
+
+	@keyframes donate-pulse {
+		0%, 100% { box-shadow: 0 2px 8px rgba(207, 20, 43, 0.35), 0 0 0 0 rgba(207, 20, 43, 0.4); }
+		50% { box-shadow: 0 2px 8px rgba(207, 20, 43, 0.35), 0 0 0 8px rgba(207, 20, 43, 0); }
+	}
 
 	main { flex: 1; }
 
@@ -302,9 +488,47 @@ const { title } = Astro.props;
 	}
 	.text-center { text-align: center; }
 
+	/* Language Toggle */
+	.header-actions {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		flex-shrink: 0;
+	}
+	.lang-toggle {
+		display: flex;
+		align-items: center;
+		background: var(--bg-gray);
+		border: 1px solid var(--border-color);
+		border-radius: 20px;
+		padding: 2px;
+		cursor: pointer;
+		user-select: none;
+		flex-shrink: 0;
+	}
+	.lang-option {
+		padding: 4px 10px;
+		border-radius: 16px;
+		font-size: 0.78rem;
+		font-weight: 700;
+		color: #888;
+		transition: all 0.2s ease;
+		letter-spacing: 0.5px;
+	}
+	.lang-option.active {
+		background: var(--primary-blue);
+		color: #fff;
+		box-shadow: 0 1px 3px rgba(0,91,181,0.3);
+	}
+	.lang-option:hover:not(.active) {
+		color: #333;
+	}
+
 	@media (max-width: 480px) {
 		.main-header .container { flex-direction: column; text-align: center; }
 		nav { width: 100%; justify-content: center; }
+		.header-actions { width: 100%; justify-content: center; }
+		.btn-donate { flex: 1; justify-content: center; font-size: 1rem; padding: 12px 20px; }
 	}
 
 	/* Sistema de Grid Responsivo para las Listas */
